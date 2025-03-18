@@ -5,6 +5,7 @@ This project demonstrates how to build a Kafka client application that produces 
 * String keys
 * Protobuf-serialized values
 * Integration with Confluent Schema Registry
+* Queue semantics using Kafka 4.0's shared consumer group feature ("Queues for Kafka")
 
 == Features
 
@@ -14,6 +15,8 @@ This project demonstrates how to build a Kafka client application that produces 
 * Provides a simple event model with different event types
 * Uses Apache Kafka 4.0.0 (pure KRaft mode without Zookeeper)
 * Uses Confluent Schema Registry 7.9.0
+* Demonstrates traditional Kafka consumer groups with broadcast semantics
+* Demonstrates Kafka 4.0's shared consumer groups with queue semantics
 
 == Prerequisites
 
@@ -99,11 +102,63 @@ message Event {
 
 == How It Works
 
-. The application creates both a producer and consumer
+. The application creates a producer and multiple consumers:
+  * One traditional consumer that receives all messages (broadcast semantics)
+  * Two shared queue consumers that each receive a subset of messages (queue semantics)
 . The producer serializes events using Protobuf and the Confluent Protobuf Serializer
-. The consumer deserializes events using the Confluent Protobuf Deserializer
+. The consumers deserialize events using the Confluent Protobuf Deserializer
 . Schema Registry manages and validates the Protobuf schemas
-. The consumer processes events in a separate thread
+. The shared consumer group demonstrates how Kafka 4.0's queue feature ensures each message is processed by exactly one consumer in the group
+
+== Queue Semantics vs. Broadcast Semantics
+
+This project demonstrates both message consumption patterns:
+
+=== Traditional Consumer Group (Broadcast)
+* Every partition's messages go to one consumer in the group
+* If there are more consumers than partitions, some consumers will be idle
+* Adding consumers only helps if they consume from different partitions
+* Useful for general stream processing
+
+=== Shared Consumer Group (Queue-like Behavior)
+* Implemented using Kafka 4.0's new shared consumer group ("Queues for Kafka") feature
+* Messages are distributed across consumers for parallel processing
+* Adding more consumers increases throughput regardless of partition count
+* Ensures each message is processed by exactly one consumer
+* Useful for work distribution and task processing
+
+==== Enabling Queue Semantics
+
+To enable the shared consumer group feature (Queues for Kafka):
+
+1. *Broker Configuration*: Enable the queue protocol on your Kafka brokers
++
+[source,yaml]
+----
+# In docker-compose.yml
+KAFKA_GROUP_PROTOCOL_CONFIG_QUEUE_ENABLED: "true"
+KAFKA_UNSTABLE_API_VERSIONS_ENABLE: "true"  # Required for new features
+----
+
+2. *Consumer Configuration*: Configure your consumers to use the queue protocol
++
+[source,java]
+----
+// Enable unstable APIs to access newer features like the queue protocol
+props.put("unstable.api.versions.enable", "true");
+
+// Use the queue protocol for shared consumer groups
+props.put("group.protocol", "queue");
+
+// Process fewer records at a time for better load balancing
+props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10");
+
+// Use shorter poll intervals
+props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "5000");
+props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
+----
+
+NOTE: The "queue" protocol is considered an unstable API in Kafka 4.0, so you must enable unstable API versions on both brokers and clients to use this feature.
 
 == Example Output
 
@@ -111,14 +166,43 @@ When you run the application, you should see output similar to:
 
 [source,text]
 ----
-13:45:22.123 [main] INFO io.confluent.devrel.App - Starting Kafka Protobuf Serialization Example
-13:45:22.567 [main] INFO io.confluent.devrel.producer.EventProducer - Event producer initialized for topic: events
-13:45:22.789 [main] INFO io.confluent.devrel.consumer.EventConsumer - Event consumer initialized for topic: events with group: event-processor
-13:45:23.456 [main] INFO io.confluent.devrel.producer.EventProducer - Sent event with id: 123e4567-e89b-12d3-a456-426614174000 and type: CREATE
-13:45:24.123 [pool-1-thread-1] INFO io.confluent.devrel.App - Processing event: id=123e4567-e89b-12d3-a456-426614174000, type=CREATE, content=Sample message 0
+10:45:22.123 [main] INFO io.confluent.devrel.App - Starting Kafka Protobuf Serialization Example with Kafka 4.0 Queues
+10:45:22.567 [main] INFO io.confluent.devrel.producer.EventProducer - Event producer initialized for topic: events
+10:45:22.678 [main] INFO io.confluent.devrel.consumer.EventConsumer - Event consumer initialized for topic: events with group: event-processor
+10:45:22.789 [main] INFO io.confluent.devrel.consumer.SharedEventConsumer - Shared event consumer shared-consumer-1 initialized for topic: events with group: shared-event-processors
+10:45:22.901 [main] INFO io.confluent.devrel.consumer.SharedEventConsumer - Shared event consumer shared-consumer-2 initialized for topic: events with group: shared-event-processors
+10:45:22.950 [main] INFO io.confluent.devrel.App - All consumers started, waiting for stability...
+10:45:25.953 [main] INFO io.confluent.devrel.App - Starting to produce events...
+10:45:26.456 [main] INFO io.confluent.devrel.producer.EventProducer - Sent event with id: 2e15c334-0f9b-43ec-8f3a-9c0e11aa0b57 and type: CREATE
+
+# Traditional consumer gets ALL messages (broadcast semantics)
+10:45:26.789 [pool-1-thread-1] INFO io.confluent.devrel.App - Traditional consumer processing event: id=2e15c334-0f9b-43ec-8f3a-9c0e11aa0b57, type=CREATE, content=Sample message 0
+
+# Shared consumers split the messages between them (queue semantics)
+10:45:26.790 [pool-1-thread-2] INFO io.confluent.devrel.App - Shared consumer 1 starting processing of event: id=2e15c334-0f9b-43ec-8f3a-9c0e11aa0b57
+10:45:27.001 [main] INFO io.confluent.devrel.producer.EventProducer - Sent event with id: f8a7b432-2c13-47d8-93e5-8b9c71a2fdef and type: CREATE
+10:45:27.102 [pool-1-thread-1] INFO io.confluent.devrel.App - Traditional consumer processing event: id=f8a7b432-2c13-47d8-93e5-8b9c71a2fdef, type=CREATE, content=Sample message 1
+10:45:27.103 [pool-1-thread-3] INFO io.confluent.devrel.App - Shared consumer 2 starting processing of event: id=f8a7b432-2c13-47d8-93e5-8b9c71a2fdef
+10:45:27.904 [pool-1-thread-3] INFO io.confluent.devrel.App - Shared consumer 2 completed processing of event: id=f8a7b432-2c13-47d8-93e5-8b9c71a2fdef
+10:45:28.290 [pool-1-thread-2] INFO io.confluent.devrel.App - Shared consumer 1 completed processing of event: id=2e15c334-0f9b-43ec-8f3a-9c0e11aa0b57
+
+# More events are processed, with each shared consumer handling different messages
 ...
-13:45:33.456 [main] INFO io.confluent.devrel.App - Kafka Protobuf Serialization Example completed 
+
+10:45:35.953 [main] INFO io.confluent.devrel.App - All events sent, waiting for processing to complete...
+10:45:45.954 [main] INFO io.confluent.devrel.App - Shutting down consumers...
+10:45:46.102 [pool-1-thread-1] INFO io.confluent.devrel.consumer.EventConsumer - Consumer closed
+10:45:46.103 [pool-1-thread-2] INFO io.confluent.devrel.consumer.SharedEventConsumer - Consumer shared-consumer-1 closed
+10:45:46.104 [pool-1-thread-3] INFO io.confluent.devrel.consumer.SharedEventConsumer - Consumer shared-consumer-2 closed
+10:45:46.234 [main] INFO io.confluent.devrel.App - Kafka Protobuf Serialization Example completed
 ----
+
+Notice in the output that:
+
+1. The traditional consumer receives all messages
+2. Each shared consumer only receives some of the messages (they split the workload)
+3. The shared consumers take different amounts of time to process their messages
+4. No message is processed by both shared consumers - each message is handled exactly once
 
 == Unit Testing
 

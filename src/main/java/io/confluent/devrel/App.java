@@ -4,6 +4,7 @@
 package io.confluent.devrel;
 
 import io.confluent.devrel.consumer.EventConsumer;
+import io.confluent.devrel.consumer.SharedEventConsumer;
 import io.confluent.devrel.producer.EventProducer;
 import io.confluent.devrel.proto.Event;
 import org.slf4j.Logger;
@@ -23,30 +24,76 @@ public class App {
     private static final String SCHEMA_REGISTRY_URL = "http://localhost:8081";
     private static final String TOPIC = "events";
     private static final String CONSUMER_GROUP = "event-processor";
+    private static final String SHARED_CONSUMER_GROUP = "shared-event-processors";
     
     public static void main(String[] args) {
-        logger.info("Starting Kafka Protobuf Serialization Example");
+        logger.info("Starting Kafka Protobuf Serialization Example with Kafka 4.0 Queues");
         
-        // Start the consumer in a separate thread
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        // Create a thread pool for multiple consumers
+        ExecutorService executorService = Executors.newFixedThreadPool(3);
         
         try (EventProducer producer = new EventProducer(BOOTSTRAP_SERVERS, SCHEMA_REGISTRY_URL, TOPIC)) {
-            // Create and start the consumer
-            EventConsumer consumer = new EventConsumer(
+            // Create and start the traditional consumer
+            EventConsumer traditionalConsumer = new EventConsumer(
                     BOOTSTRAP_SERVERS, 
                     SCHEMA_REGISTRY_URL,
                     CONSUMER_GROUP,
                     TOPIC, 
                     (key, event) -> {
-                        logger.info("Processing event: id={}, type={}, content={}", 
+                        logger.info("Traditional consumer processing event: id={}, type={}, content={}", 
                                 event.getId(), event.getType(), event.getContent());
                     }
             );
             
-            executorService.submit(consumer);
+            // Create and start two shared queue consumers in the same group
+            // Both will receive different messages from the same topic (queue semantics)
+            SharedEventConsumer sharedConsumer1 = new SharedEventConsumer(
+                    BOOTSTRAP_SERVERS,
+                    SCHEMA_REGISTRY_URL,
+                    SHARED_CONSUMER_GROUP,
+                    TOPIC,
+                    "shared-consumer-1",
+                    (key, event) -> {
+                        // Simulate different processing times
+                        try {
+                            logger.info("Shared consumer 1 starting processing of event: id={}", event.getId());
+                            Thread.sleep(1500); // Longer processing time
+                            logger.info("Shared consumer 1 completed processing of event: id={}", event.getId());
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+            );
             
-            // Produce some sample events
-            for (int i = 0; i < 5; i++) {
+            SharedEventConsumer sharedConsumer2 = new SharedEventConsumer(
+                    BOOTSTRAP_SERVERS,
+                    SCHEMA_REGISTRY_URL,
+                    SHARED_CONSUMER_GROUP,
+                    TOPIC,
+                    "shared-consumer-2",
+                    (key, event) -> {
+                        // Simulate different processing times
+                        try {
+                            logger.info("Shared consumer 2 starting processing of event: id={}", event.getId());
+                            Thread.sleep(800); // Shorter processing time
+                            logger.info("Shared consumer 2 completed processing of event: id={}", event.getId());
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+            );
+            
+            // Start all consumers
+            executorService.submit(traditionalConsumer);
+            executorService.submit(sharedConsumer1);
+            executorService.submit(sharedConsumer2);
+            
+            logger.info("All consumers started, waiting for stability...");
+            Thread.sleep(3000); // Wait for consumers to stabilize
+            
+            // Produce sample events
+            logger.info("Starting to produce events...");
+            for (int i = 0; i < 100; i++) {
                 String id = UUID.randomUUID().toString();
                 
                 Event event = Event.newBuilder()
@@ -58,32 +105,23 @@ public class App {
                 
                 producer.sendEvent(id, event);
                 
-                try {
-                    // Wait a bit between sends
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
+                // Wait a bit between sends
+                Thread.sleep(500);
             }
             
-            // Allow some time for processing
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+            // Allow time for processing all events
+            logger.info("All events sent, waiting for processing to complete...");
+            Thread.sleep(10000);
             
-            // Shutdown the consumer
-            consumer.shutdown();
+            // Shutdown all consumers
+            logger.info("Shutting down consumers...");
+            traditionalConsumer.shutdown();
+            sharedConsumer1.shutdown();
+            sharedConsumer2.shutdown();
+            
             executorService.shutdown();
-            try {
-                if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
-                    executorService.shutdownNow();
-                }
-            } catch (InterruptedException e) {
+            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
                 executorService.shutdownNow();
-                Thread.currentThread().interrupt();
             }
             
         } catch (Exception e) {
