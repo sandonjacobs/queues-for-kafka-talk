@@ -68,15 +68,36 @@ mvn test
 # Package the application
 mvn package
 
-# Run the application
+# Run the application with default settings (producer runs for 60 seconds with 500ms interval)
 mvn exec:java
 ----
+
+You can configure the application's behavior using command-line options:
+
+[source,bash]
+----
+# Run with custom duration (30 seconds) and interval (200ms)
+mvn exec:java -Dexec.args="-d 30 -i 200"
+
+# Show help with all available options
+mvn exec:java -Dexec.args="-h"
+----
+
+Available command-line options:
+
+* `-d, --duration <seconds>`: Duration in seconds for the producer to run (default: 60)
+* `-i, --interval <milliseconds>`: Interval in milliseconds between producing events (default: 500)
+* `-h, --help`: Display help information
 
 You can also run the packaged jar with all dependencies:
 
 [source,bash]
 ----
+# Run with default settings
 java -jar target/queues-for-kafka-1.0-SNAPSHOT-jar-with-dependencies.jar
+
+# Run with custom settings
+java -jar target/queues-for-kafka-1.0-SNAPSHOT-jar-with-dependencies.jar -d 30 -i 200
 ----
 
 == Understanding the Protobuf Event Schema
