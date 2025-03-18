@@ -12,7 +12,7 @@ This project demonstrates how to build a Kafka client application that produces 
 * Consumes events deserialized from Protocol Buffers from the same Kafka topic
 * Uses Confluent Schema Registry for schema management
 * Provides a simple event model with different event types
-* Uses Apache Kafka 4.0.0-rc4 (pure KRaft mode without Zookeeper)
+* Uses Apache Kafka 4.0.0 (pure KRaft mode without Zookeeper)
 * Uses Confluent Schema Registry 7.9.0
 
 == Prerequisites
@@ -30,7 +30,7 @@ This project demonstrates how to build a Kafka client application that produces 
 
 == Setting Up Kafka and Schema Registry
 
-You can use Docker Compose to run Apache Kafka 4.0.0-rc4 (in pure KRaft mode) and Confluent Schema Registry locally:
+You can use Docker Compose to run Apache Kafka 4.0.0 (in pure KRaft mode) and Confluent Schema Registry locally:
 
 [source,bash]
 ----
@@ -40,12 +40,12 @@ docker-compose up -d
 
 The docker-compose.yml file contains:
 
-* Apache Kafka 4.0.0-rc4 (pure KRaft mode without Zookeeper)
+* Apache Kafka 4.0.0 (pure KRaft mode without Zookeeper)
 * Confluent Schema Registry 7.9.0
 
 === Note on KRaft Mode
 
-This setup uses Apache Kafka 4.0.0-rc4 in pure KRaft mode, which is Kafka's new consensus protocol that removes the dependency on Zookeeper. KRaft mode provides:
+This setup uses Apache Kafka 4.0.0 in pure KRaft mode, which is Kafka's new consensus protocol that removes the dependency on Zookeeper. KRaft mode provides:
 
 * Simpler architecture (no separate Zookeeper cluster)
 * Better performance and scalability
