@@ -23,6 +23,14 @@ public class EventProducer implements AutoCloseable {
     private final String topic;
     
     public EventProducer(String bootstrapServers, String schemaRegistryUrl, String topic) {
+        this.producer = createProducer(bootstrapServers, schemaRegistryUrl);
+        this.topic = topic;
+        
+        logger.info("Event producer initialized for topic: {}", topic);
+    }
+    
+    // This method can be overridden in tests to inject a mock producer
+    protected KafkaProducer<String, Event> createProducer(String bootstrapServers, String schemaRegistryUrl) {
         Properties props = new Properties();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
@@ -35,10 +43,7 @@ public class EventProducer implements AutoCloseable {
         props.put(ProducerConfig.LINGER_MS_CONFIG, 5);
         props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
         
-        this.producer = new KafkaProducer<>(props);
-        this.topic = topic;
-        
-        logger.info("Event producer initialized for topic: {}", topic);
+        return new KafkaProducer<>(props);
     }
     
     public void sendEvent(String key, Event event) {

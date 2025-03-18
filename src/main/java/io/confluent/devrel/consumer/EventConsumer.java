@@ -23,10 +23,21 @@ public class EventConsumer implements Runnable, AutoCloseable {
     private final Consumer<String, Event> consumer;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final EventHandler eventHandler;
+    private final String topic;
     
     public EventConsumer(String bootstrapServers, String schemaRegistryUrl, 
                         String groupId, String topic,
                         EventHandler eventHandler) {
+        this.consumer = createConsumer(bootstrapServers, schemaRegistryUrl, groupId);
+        this.consumer.subscribe(Collections.singletonList(topic));
+        this.eventHandler = eventHandler;
+        this.topic = topic;
+        
+        logger.info("Event consumer initialized for topic: {} with group: {}", topic, groupId);
+    }
+    
+    // Protected method to allow overriding in tests for mocking
+    protected KafkaConsumer<String, Event> createConsumer(String bootstrapServers, String schemaRegistryUrl, String groupId) {
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
@@ -36,11 +47,7 @@ public class EventConsumer implements Runnable, AutoCloseable {
         props.put("schema.registry.url", schemaRegistryUrl);
         props.put(KafkaProtobufDeserializerConfig.SPECIFIC_PROTOBUF_VALUE_TYPE, Event.class.getName());
         
-        this.consumer = new KafkaConsumer<>(props);
-        this.consumer.subscribe(Collections.singletonList(topic));
-        this.eventHandler = eventHandler;
-        
-        logger.info("Event consumer initialized for topic: {} with group: {}", topic, groupId);
+        return new KafkaConsumer<>(props);
     }
     
     @Override
