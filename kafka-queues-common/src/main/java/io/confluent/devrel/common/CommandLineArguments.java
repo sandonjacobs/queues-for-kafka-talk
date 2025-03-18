@@ -1,4 +1,4 @@
-package io.confluent.devrel;
+package io.confluent.devrel.common;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
