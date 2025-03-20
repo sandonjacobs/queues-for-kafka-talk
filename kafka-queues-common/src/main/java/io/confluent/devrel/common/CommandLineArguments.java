@@ -14,11 +14,13 @@ import org.apache.commons.cli.ParseException;
 public class CommandLineArguments {
     private String duration;
     private String interval;
+    private String numConsumers;
     private boolean helpRequested;
 
-    private CommandLineArguments(String duration, String interval, boolean helpRequested) {
+    private CommandLineArguments(String duration, String interval, String numConsumers, boolean helpRequested) {
         this.duration = duration;
         this.interval = interval;
+        this.numConsumers = numConsumers;
         this.helpRequested = helpRequested;
     }
 
@@ -44,6 +46,14 @@ public class CommandLineArguments {
                 .hasArg()
                 .argName("milliseconds")
                 .desc("Interval in milliseconds between producing events (default: 500)")
+                .type(Number.class)
+                .build());
+        
+        options.addOption(Option.builder("c")
+                .longOpt("consumers")
+                .hasArg()
+                .argName("count")
+                .desc("Number of shared consumers to start (default: 3, max: 10)")
                 .type(Number.class)
                 .build());
                 
@@ -74,8 +84,23 @@ public class CommandLineArguments {
         // Get parameter values or use defaults
         String duration = cmd.getOptionValue("duration", "60");
         String interval = cmd.getOptionValue("interval", "500");
+        String numConsumers = cmd.getOptionValue("consumers", "3");
         
-        return new CommandLineArguments(duration, interval, helpRequested);
+        // Validate number of consumers
+        try {
+            int consumers = Integer.parseInt(numConsumers);
+            if (consumers < 1 || consumers > 10) {
+                System.err.println("Error: Number of consumers must be between 1 and 10");
+                formatter.printHelp("kafka-queues-demo", options, true);
+                System.exit(1);
+            }
+        } catch (NumberFormatException e) {
+            System.err.println("Error: Number of consumers must be a valid integer");
+            formatter.printHelp("kafka-queues-demo", options, true);
+            System.exit(1);
+        }
+        
+        return new CommandLineArguments(duration, interval, numConsumers, helpRequested);
     }
 
     /**
@@ -89,10 +114,12 @@ public class CommandLineArguments {
         System.out.println("\nAvailable command line options:");
         formatter.printHelp("mvn exec:java -Dexec.args=\"[options]\"", options);
         System.out.println("\nExamples:");
-        System.out.println("  Default settings (60s duration, 500ms interval):");
+        System.out.println("  Default settings (60s duration, 500ms interval, 3 shared consumers):");
         System.out.println("    mvn exec:java");
         System.out.println("  Custom duration and interval:");
         System.out.println("    mvn exec:java -Dexec.args=\"-d 30 -i 200\"");
+        System.out.println("  Custom number of shared consumers:");
+        System.out.println("    mvn exec:java -Dexec.args=\"-c 5\"");
         System.out.println("  Display this help message:");
         System.out.println("    mvn exec:java -Dexec.args=\"-h\" or");
         System.out.println("    mvn exec:java -Dexec.args=\"--help\"");
@@ -105,6 +132,14 @@ public class CommandLineArguments {
 
     public String getInterval() {
         return interval;
+    }
+    
+    public String getNumConsumers() {
+        return numConsumers;
+    }
+    
+    public int getNumConsumersAsInt() {
+        return Integer.parseInt(numConsumers);
     }
 
     public boolean isHelpRequested() {

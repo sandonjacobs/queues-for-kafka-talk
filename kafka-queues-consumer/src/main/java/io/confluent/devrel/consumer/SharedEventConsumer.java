@@ -18,7 +18,7 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * A Kafka consumer that demonstrates the shared consumer group feature in Apache Kafka 4.0
+ * A Kafka consumer that demonstrates the shared consumer group feature in Apache Kafka 4.0 (KIP-932)
  * This implements "Queues for Kafka" where each message is delivered to exactly one consumer in the group
  */
 public class SharedEventConsumer implements Runnable, AutoCloseable {
@@ -57,12 +57,12 @@ public class SharedEventConsumer implements Runnable, AutoCloseable {
         // Enable unstable APIs to access newer features like the queue protocol
         props.put("unstable.api.versions.enable", "true");
         
-        // Settings for Kafka 4.0 Queues feature
-        // When using "CONSUMER" protocol, don't set partition.assignment.strategy
-        props.put("group.protocol", "CONSUMER"); // Use CONSUMER protocol for shared consumer groups
+        // KIP-932 configuration for Kafka 4.0+
+        // Set the GROUP_PROTOCOL_CONFIG to CONSUMER for queue semantics
+        props.put(ConsumerConfig.GROUP_PROTOCOL_CONFIG, "CONSUMER");
         
         // Process fewer records at a time for better load balancing
-        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10");
+        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "5");
         
         // Use shorter poll intervals
         props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "5000");
