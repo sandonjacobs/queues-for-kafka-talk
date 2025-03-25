@@ -3,18 +3,14 @@
 This project demonstrates how to build a Kafka client application that produces and consumes events with:
 
 * String keys
-* Protobuf-serialized values
-* Integration with Confluent Schema Registry
 * Queue semantics using Kafka 4.0's shared consumer group feature ("Queues for Kafka")
 
 == Features
 
-* Produces events serialized with Protocol Buffers to a Kafka topic
-* Consumes events deserialized from Protocol Buffers from the same Kafka topic
-* Uses Confluent Schema Registry for schema management
+* Produces events to a Kafka topic
+* Consumes events deserialized from the same Kafka topic
 * Provides a simple event model with different event types
 * Uses Apache Kafka 4.0.0 (pure KRaft mode without Zookeeper)
-* Uses Confluent Schema Registry 7.9.0
 * Demonstrates traditional Kafka consumer groups with broadcast semantics
 * Demonstrates Kafka 4.0's shared consumer groups with queue semantics
 
@@ -24,16 +20,9 @@ This project demonstrates how to build a Kafka client application that produces 
 * Maven 3.8 or higher
 * Docker and Docker Compose (for running Kafka and Schema Registry locally)
 
-== Project Structure
+== Setting Up Kafka
 
-* `src/main/proto/message.proto`: Protobuf definition for event messages
-* `src/main/java/io/confluent/devrel/producer/EventProducer.java`: Kafka producer with Protobuf serialization
-* `src/main/java/io/confluent/devrel/consumer/EventConsumer.java`: Kafka consumer with Protobuf deserialization
-* `src/main/java/io/confluent/devrel/App.java`: Main application demonstrating producer and consumer usage
-
-== Setting Up Kafka and Schema Registry
-
-You can use Docker Compose to run Apache Kafka 4.0.0 (in pure KRaft mode) and Confluent Schema Registry locally:
+You can use Docker Compose to run Apache Kafka 4.0.0 (in pure KRaft mode), supporting Early Access unstable features (KIP-932):
 
 [source,bash]
 ----
@@ -44,7 +33,6 @@ docker-compose up -d
 The docker-compose.yml file contains:
 
 * Apache Kafka 4.0.0 (pure KRaft mode without Zookeeper)
-* Confluent Schema Registry 7.9.0
 
 === Note on KRaft Mode
 
@@ -100,35 +88,13 @@ java -jar target/queues-for-kafka-1.0-SNAPSHOT-jar-with-dependencies.jar
 java -jar target/queues-for-kafka-1.0-SNAPSHOT-jar-with-dependencies.jar -d 30 -i 200
 ----
 
-== Understanding the Protobuf Event Schema
-
-The example uses a simple event schema defined in `message.proto`:
-
-[source,protobuf]
-----
-message Event {
-  string id = 1;
-  string content = 2;
-  int64 timestamp = 3;
-  EventType type = 4;
-  
-  enum EventType {
-    UNKNOWN = 0;
-    CREATE = 1;
-    UPDATE = 2;
-    DELETE = 3;
-  }
-}
-----
-
 == How It Works
 
 . The application creates a producer and multiple consumers:
   * One traditional consumer that receives all messages (broadcast semantics)
   * Two shared queue consumers that each receive a subset of messages (queue semantics)
-. The producer serializes events using Protobuf and the Confluent Protobuf Serializer
-. The consumers deserialize events using the Confluent Protobuf Deserializer
-. Schema Registry manages and validates the Protobuf schemas
+. The producer serializes events
+. The consumers deserialize events
 . The shared consumer group demonstrates how Kafka 4.0's queue feature ensures each message is processed by exactly one consumer in the group
 
 == Queue Semantics vs. Broadcast Semantics
