@@ -2,7 +2,7 @@ package io.confluent.devrel.producer;
 
 import io.confluent.devrel.common.CommandLineArguments;
 import io.confluent.devrel.common.KafkaConfig;
-import io.confluent.devrel.proto.Event;
+import io.confluent.devrel.common.StringEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,13 +25,12 @@ public class ProducerApp {
         int producerDuration = Integer.parseInt(cmdArgs.getDuration());
         int producerInterval = Integer.parseInt(cmdArgs.getInterval());
         
-        logger.info("Starting Kafka Event Producer");
+        logger.info("Starting Kafka Event Producer (String serialization)");
         logger.info("Producer will run for {} seconds with {} ms interval between events", 
                 producerDuration, producerInterval);
         
         try (EventProducer producer = new EventProducer(
-                KafkaConfig.BOOTSTRAP_SERVERS, 
-                KafkaConfig.SCHEMA_REGISTRY_URL,
+                KafkaConfig.BOOTSTRAP_SERVERS,
                 KafkaConfig.TOPIC)) {
             
             // Calculate end time based on duration parameter
@@ -51,12 +50,11 @@ public class ProducerApp {
             while (System.currentTimeMillis() < endTime && running.get()) {
                 String id = UUID.randomUUID().toString();
                 
-                Event event = Event.newBuilder()
-                        .setId(id)
-                        .setContent("Sample message " + counter++)
-                        .setTimestamp(Instant.now().toEpochMilli())
-                        .setType(Event.EventType.CREATE)
-                        .build();
+                StringEvent event = new StringEvent(
+                        id,
+                        "CREATE",
+                        "Sample message " + counter++
+                );
                 
                 producer.sendEvent(id, event);
                 

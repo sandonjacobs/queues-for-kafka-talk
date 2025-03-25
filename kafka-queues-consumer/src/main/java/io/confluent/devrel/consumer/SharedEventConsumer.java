@@ -1,12 +1,10 @@
 package io.confluent.devrel.consumer;
 
-import io.confluent.devrel.proto.Event;
-import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
-import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializerConfig;
-import org.apache.kafka.clients.consumer.Consumer;
+import io.confluent.devrel.common.StringEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.KafkaShareConsumer;
+import org.apache.kafka.clients.consumer.ShareConsumer;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
@@ -24,16 +22,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SharedEventConsumer implements Runnable, AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(SharedEventConsumer.class);
     
-    private final Consumer<String, Event> consumer;
+    private final ShareConsumer<String, String> consumer;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final EventHandler eventHandler;
     private final String consumerId;
     private final String topic;
     
-    public SharedEventConsumer(String bootstrapServers, String schemaRegistryUrl, 
+    public SharedEventConsumer(String bootstrapServers, 
                         String groupId, String topic, String consumerId,
                         EventHandler eventHandler) {
-        this.consumer = createConsumer(bootstrapServers, schemaRegistryUrl, groupId);
+        this.consumer = createConsumer(bootstrapServers, groupId);
         this.consumer.subscribe(Collections.singletonList(topic));
         this.eventHandler = eventHandler;
         this.topic = topic;
@@ -44,15 +42,13 @@ public class SharedEventConsumer implements Runnable, AutoCloseable {
     }
     
     // Protected method to allow overriding in tests for mocking
-    protected KafkaConsumer<String, Event> createConsumer(String bootstrapServers, String schemaRegistryUrl, String groupId) {
+    protected ShareConsumer<String, String> createConsumer(String bootstrapServers, String groupId) {
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaProtobufDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        props.put("schema.registry.url", schemaRegistryUrl);
-        props.put(KafkaProtobufDeserializerConfig.SPECIFIC_PROTOBUF_VALUE_TYPE, Event.class.getName());
         
         // Enable unstable APIs to access newer features like the queue protocol
         props.put("unstable.api.versions.enable", "true");
@@ -68,23 +64,26 @@ public class SharedEventConsumer implements Runnable, AutoCloseable {
         props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "5000");
         props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
         
-        return new KafkaConsumer<>(props);
+        return new KafkaShareConsumer<>(props);
     }
     
     @Override
     public void run() {
         try {
             while (!closed.get()) {
-                ConsumerRecords<String, Event> records = consumer.poll(Duration.ofMillis(500));
+                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
                 
                 records.forEach(record -> {
                     logger.debug("Consumer {}: Received event: key={}, value={}, partition={}, offset={}",
                             consumerId, record.key(), record.value(), record.partition(), record.offset());
                     
                     try {
-                        eventHandler.handleEvent(record.key(), record.value());
-                        logger.info("Consumer {}: Processed event: id={}, type={}, content={}",
-                               consumerId, record.value().getId(), record.value().getType(), record.value().getContent());
+                        // Parse the string value into a StringEvent
+                        StringEvent event = parseEvent(record.value());
+                        eventHandler.handleEvent(record.key(), event, record.partition());
+                        logger.debug("Consumer {}: Processed event: id={}, type={}, content={}, partition={}",
+                               consumerId, event.getId(), event.getType(), event.getContent(), 
+                               record.partition());
                     } catch (Exception e) {
                         logger.error("Consumer {}: Error handling event: {}", consumerId, e.getMessage(), e);
                     }
@@ -101,6 +100,18 @@ public class SharedEventConsumer implements Runnable, AutoCloseable {
         }
     }
     
+    /**
+     * Parse a string value into a StringEvent object
+     * Format: "id:type:content"
+     */
+    private StringEvent parseEvent(String value) {
+        String[] parts = value.split(":", 3);
+        if (parts.length != 3) {
+            throw new IllegalArgumentException("Invalid event format: " + value);
+        }
+        return new StringEvent(parts[0], parts[1], parts[2]);
+    }
+    
     public void shutdown() {
         closed.set(true);
         consumer.wakeup();
@@ -112,6 +123,6 @@ public class SharedEventConsumer implements Runnable, AutoCloseable {
     }
     
     public interface EventHandler {
-        void handleEvent(String key, Event event);
+        void handleEvent(String key, StringEvent event, int partition);
     }
 } 

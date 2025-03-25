@@ -2,11 +2,15 @@ package io.confluent.devrel.consumer;
 
 import io.confluent.devrel.common.CommandLineArguments;
 import io.confluent.devrel.common.KafkaConfig;
+import io.confluent.devrel.common.StringEvent;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -48,20 +52,28 @@ public class ConsumerApp {
             });
         
         try {
-//            // Create and start the traditional consumer
-//            EventConsumer traditionalConsumer = new EventConsumer(
-//                    KafkaConfig.BOOTSTRAP_SERVERS,
-//                    KafkaConfig.SCHEMA_REGISTRY_URL,
-//                    KafkaConfig.CONSUMER_GROUP,
-//                    KafkaConfig.TOPIC,
-//                    (key, event) -> {
-//                        logger.info("Traditional consumer processing event: id={}, type={}, content={}, thread: {}",
-//                                event.getId(), event.getType(), event.getContent(),
-//                                Thread.currentThread().getName());
-//                    }
-//            );
-            
             // Create and start multiple shared consumers in the same group
+            final Properties shareGroupProps = new Properties() {{
+                put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAP_SERVERS);
+                put(ConsumerConfig.GROUP_ID_CONFIG, KafkaConfig.SHARED_CONSUMER_GROUP);
+                put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+                put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+                put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+                // Enable unstable APIs to access newer features like the queue protocol
+                put("unstable.api.versions.enable", "true");
+
+                // KIP-932 configuration for Kafka 4.0+
+                // Set the GROUP_PROTOCOL_CONFIG to CONSUMER for queue semantics
+                put(ConsumerConfig.GROUP_PROTOCOL_CONFIG, "CONSUMER");
+
+                // Process fewer records at a time for better load balancing
+                put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "5");
+
+                // Use shorter poll intervals
+                put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "5000");
+                put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
+            }};
             List<SharedEventConsumer> sharedConsumers = new ArrayList<>();
             for (int i = 1; i <= numSharedConsumers; i++) {
                 final String consumerId = "shared-consumer-" + i;
@@ -69,37 +81,32 @@ public class ConsumerApp {
                 
                 SharedEventConsumer consumer = new SharedEventConsumer(
                         KafkaConfig.BOOTSTRAP_SERVERS,
-                        KafkaConfig.SCHEMA_REGISTRY_URL,
                         KafkaConfig.SHARED_CONSUMER_GROUP,
                         KafkaConfig.TOPIC,
                         consumerId,
-                        (key, event) -> {
+                        (key, event, partition) -> {
                             // Simulate different processing times
                             try {
-                                logger.info("{} starting processing of event: id={}, thread: {}",
-                                    consumerId, event.getId(), Thread.currentThread().getName());
+                                logger.debug("{} starting processing of event: id={}, partition={}, thread: {}",
+                                    consumerId, event.getId(), partition, Thread.currentThread().getName());
                                 Thread.sleep(processingTime); // Variable processing time
-                                logger.info("{} completed processing of event: id={}, thread: {}", 
-                                    consumerId, event.getId(), Thread.currentThread().getName());
+                                logger.info("consumerId={}, partition={}, event={}",
+                                    consumerId, partition, event);
                             } catch (InterruptedException e) {
                                 Thread.currentThread().interrupt();
                             }
                         }
                 );
-                
+
                 sharedConsumers.add(consumer);
                 executorService.submit(consumer);
             }
-            
-            // Start the traditional consumer
-//            executorService.submit(traditionalConsumer);
             
             logger.info("All consumers started and running");
             
             // Add a shutdown hook to gracefully terminate
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 logger.info("Shutdown signal received, stopping consumers...");
-//                traditionalConsumer.shutdown();
                 
                 // Shutdown all shared consumers
                 for (SharedEventConsumer consumer : sharedConsumers) {
