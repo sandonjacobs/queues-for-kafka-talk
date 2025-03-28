@@ -1,12 +1,13 @@
 package io.confluent.devrel.producer;
 
-import io.confluent.devrel.common.CommandLineArguments;
-import io.confluent.devrel.common.KafkaConfig;
-import io.confluent.devrel.common.StringEvent;
+import io.confluent.devrel.common.args.ProducerArgsParser;
+import io.confluent.devrel.common.config.KafkaConfig;
+import io.confluent.devrel.common.model.StringEvent;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -17,21 +18,27 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ProducerApp {
     private static final Logger logger = LoggerFactory.getLogger(ProducerApp.class);
     
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         // Parse command line arguments
-        CommandLineArguments cmdArgs = CommandLineArguments.parse(args);
+        ProducerArgsParser cmdArgs = ProducerArgsParser.parseOptions(args);
         
         // Get parameter values
-        int producerDuration = Integer.parseInt(cmdArgs.getDuration());
-        int producerInterval = Integer.parseInt(cmdArgs.getInterval());
+        int producerDuration = cmdArgs.getDuration();
+        int producerInterval = cmdArgs.getInterval();
         
         logger.info("Starting Kafka Event Producer (String serialization)");
         logger.info("Producer will run for {} seconds with {} ms interval between events", 
                 producerDuration, producerInterval);
-        
-        try (EventProducer producer = new EventProducer(
-                KafkaConfig.BOOTSTRAP_SERVERS,
-                KafkaConfig.TOPIC)) {
+
+        Optional<String> propertyPathOverride = Optional.ofNullable(cmdArgs.getKafkaPropsPath());
+        KafkaProducer<String, String> kafkaProducer;
+        if (propertyPathOverride.isPresent()) {
+            kafkaProducer = KafkaConfig.createProducer(propertyPathOverride.get());
+        } else {
+            kafkaProducer = KafkaConfig.createProducer();
+        }
+
+        try (EventProducer<String, String> eventProducer = new EventProducer<>(kafkaProducer, KafkaConfig.TOPIC)) {
             
             // Calculate end time based on duration parameter
             long endTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(producerDuration);
@@ -56,7 +63,7 @@ public class ProducerApp {
                         "Sample message " + counter++
                 );
                 
-                producer.sendEvent(id, event);
+                eventProducer.sendEvent(id, event.toString());
                 
                 // Wait between sends according to the interval parameter
                 Thread.sleep(producerInterval);
