@@ -50,7 +50,26 @@ public class ConsumerArgsParser extends CommandLineArguments {
     }
 
     private static void printHelp(Options options, HelpFormatter formatter) {
-        // TODO show the help for consumer arg usage
+        System.out.println("Kafka Queues Consumer - Command Line Arguments");
+        System.out.println("--------------------------------------------");
+        System.out.println("This application demonstrates the queue protocol feature in Kafka 4.0+");
+        System.out.println("where each message is delivered to exactly one consumer in the group.");
+        System.out.println();
+        System.out.println("Required Arguments:");
+        System.out.println("  -p, --properties <file>    Path to Kafka client properties file");
+        System.out.println();
+        System.out.println("Optional Arguments:");
+        System.out.println("  -c, --consumers <count>    Number of shared consumers to start");
+        System.out.println("                              (default: 3, max: 10)");
+        System.out.println("  -h, --help                 Display this help message");
+        System.out.println();
+        System.out.println("Example:");
+        System.out.println("  java -jar kafka-queues-consumer.jar \\");
+        System.out.println("    --properties /path/to/properties \\");
+        System.out.println("    --consumers 5");
+        System.out.println();
+        System.out.println("For more information about the queue protocol feature,");
+        System.out.println("visit: https://cwiki.apache.org/confluence/display/KAFKA/KIP-932%3A+Queues+for+Kafka");
     }
 
 }

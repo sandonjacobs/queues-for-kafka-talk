@@ -68,23 +68,25 @@ public class ProducerArgsParser extends CommandLineArguments {
      * Print help information
      */
     private static void printHelp(Options options, HelpFormatter formatter) {
-        System.out.println("\n");
-        System.out.println("===============================================");
-        System.out.println("          KAFKA QUEUES DEMO HELP              ");
-        System.out.println("===============================================");
-        System.out.println("\nAvailable command line options:");
-        formatter.printHelp("mvn exec:java -Dexec.args=\"[options]\"", options);
-        System.out.println("\nExamples:");
-        System.out.println("  Default settings (60s duration, 500ms interval, 3 shared consumers):");
-        System.out.println("    mvn exec:java");
-        System.out.println("  Custom duration and interval:");
-        System.out.println("    mvn exec:java -Dexec.args=\"-d 30 -i 200\"");
-        System.out.println("  Custom number of shared consumers:");
-        System.out.println("    mvn exec:java -Dexec.args=\"-c 5\"");
-        System.out.println("  Display this help message:");
-        System.out.println("    mvn exec:java -Dexec.args=\"-h\" or");
-        System.out.println("    mvn exec:java -Dexec.args=\"--help\"");
-        System.out.println("===============================================");
+        System.out.println("Kafka Producer - Command Line Arguments");
+        System.out.println("-------------------------------------");
+        System.out.println("This application produces events to a Kafka topic.");
+        System.out.println();
+        System.out.println("Required Arguments:");
+        System.out.println("  -p, --properties <file>    Path to Kafka client properties file");
+        System.out.println();
+        System.out.println("Optional Arguments:");
+        System.out.println("  -d, --duration <seconds>   Duration in seconds for the producer to run");
+        System.out.println("                              (default: 60)");
+        System.out.println("  -i, --interval <ms>        Interval in milliseconds between producing events");
+        System.out.println("                              (default: 500)");
+        System.out.println("  -h, --help                 Display this help message");
+        System.out.println();
+        System.out.println("Example:");
+        System.out.println("  java -jar kafka-producer.jar \\");
+        System.out.println("    --properties /path/to/properties \\");
+        System.out.println("    --duration 120 \\");
+        System.out.println("    --interval 1000");
     }
 
 }

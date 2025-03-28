@@ -11,7 +11,7 @@
 
     <modules>
         <module>kafka-queues-common</module>
-        <module>kafka-queues-producer</module>
+        <module>kafka-producer</module>
         <module>kafka-queues-consumer</module>
     </modules>
 
