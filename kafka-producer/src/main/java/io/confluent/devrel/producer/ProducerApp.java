@@ -2,7 +2,7 @@ package io.confluent.devrel.producer;
 
 import io.confluent.devrel.common.args.ProducerArgsParser;
 import io.confluent.devrel.common.config.KafkaConfig;
-import io.confluent.devrel.common.model.StringEvent;
+import io.confluent.devrel.common.model.MyEvent;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +57,7 @@ public class ProducerApp {
             while (System.currentTimeMillis() < endTime && running.get()) {
                 String id = UUID.randomUUID().toString();
                 
-                StringEvent event = new StringEvent(
+                MyEvent event = new MyEvent(
                         id,
                         "CREATE",
                         "Sample message " + counter++

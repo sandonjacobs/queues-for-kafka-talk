@@ -63,10 +63,10 @@ public class ConsumerApp {
                     SharedEventConsumer<String, String> consumer = new SharedEventConsumer<>(
                             consumerId,
                             createConsumer(kafkaPropsPath),
-                            (key, value, partition) -> {
+                            (key, value, partition, offset) -> {
                                 try {
-                                    logger.info("Consumer {} from partition {} => received key {} value {}",
-                                            consumerId, partition, key, value);
+                                    logger.info("Consumer {} from partition: {} at offset: {} => received key {} value {}",
+                                            consumerId, partition, offset, key, value);
                                     Thread.sleep(processingTime); // Variable processing time
                                 } catch (InterruptedException e) {
                                     Thread.currentThread().interrupt();
@@ -116,6 +116,9 @@ public class ConsumerApp {
         propOverrides.put(ConsumerConfig.GROUP_ID_CONFIG, KafkaConfig.SHARED_CONSUMER_GROUP);
         propOverrides.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         propOverrides.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+
+        propOverrides.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        propOverrides.put("share.group." + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         // Enable unstable APIs to access newer features like the queue protocol
         propOverrides.put("unstable.api.versions.enable", "true");
         // KIP-932 configuration for Kafka 4.0+

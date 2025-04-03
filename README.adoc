@@ -1,28 +1,26 @@
-= Kafka Protobuf Serialization Example
+= Shared Kafka Consumer Groups (aka Queues for Kafka)
 
-This project demonstrates how to build a Kafka client application that produces and consumes events with:
+This project demonstrates demostrates the EARLY ACCESS version of KIP-932, a.k.a "Queues for Kafka." You won't find the word
+"queue" used in the internal vocabulary of most Kafka developers. This new shared consumer group coordination is designed to bring some
+queue-like functionality - native to the JMS/MQ world - into Kafka.
 
-* String keys
-* Queue semantics using Kafka 4.0's shared consumer group feature ("Queues for Kafka")
+== Project Highlights
 
-== Features
-
-* Produces events to a Kafka topic
-* Consumes events deserialized from the same Kafka topic
-* Provides a simple event model with different event types
-* Uses Apache Kafka 4.0.0 (pure KRaft mode without Zookeeper)
-* Demonstrates traditional Kafka consumer groups with broadcast semantics
-* Demonstrates Kafka 4.0's shared consumer groups with queue semantics
+* Uses Apache Kafka 4.0.0
+** There are a number of unsupported, non-production worthy feature enabled to make the KIP-932 functionality accessible for this demo.
+* Produces events to a Kafka topic - serialized as a String
+* Consumes events deserialized from the same Kafka topic, using the SharedConsumer implementation.
+** kafka-consumer app is the traditional Kafka consumer group, with partition assignment.
+** kafka-queue-consumer app will create a given number of threads, all with SharedConsumer instances of the same consumer group id.
 
 == Prerequisites
 
 * Java 21 or higher
 * Maven 3.8 or higher
-* Docker and Docker Compose (for running Kafka and Schema Registry locally)
+* Docker and Docker Compose (for running Kafka locally)
 
 == Setting Up Kafka
-
-You can use Docker Compose to run Apache Kafka 4.0.0 (in pure KRaft mode), supporting Early Access unstable features (KIP-932):
+You can use Docker Compose to run Apache Kafka 4.0.0, supporting Early Access unstable features (KIP-932):
 
 [source,bash]
 ----
@@ -33,15 +31,6 @@ docker-compose up -d
 The docker-compose.yml file contains:
 
 * Apache Kafka 4.0.0 (pure KRaft mode without Zookeeper)
-
-=== Note on KRaft Mode
-
-This setup uses Apache Kafka 4.0.0 in pure KRaft mode, which is Kafka's new consensus protocol that removes the dependency on Zookeeper. KRaft mode provides:
-
-* Simpler architecture (no separate Zookeeper cluster)
-* Better performance and scalability
-* Reduced operational complexity
-* A single security model
 
 == Building and Running the Application
 
@@ -65,6 +54,7 @@ You can configure the application's behavior using command-line options:
 [source,bash]
 ----
 # Run with custom duration (30 seconds) and interval (200ms)
+# TODO: Fix these sections, how to run the consumer apps then the producer app.
 mvn exec:java -Dexec.args="-d 30 -i 200"
 
 # Show help with all available options
@@ -73,35 +63,17 @@ mvn exec:java -Dexec.args="-h"
 
 Available command-line options:
 
+// TODO update this
+
 * `-d, --duration <seconds>`: Duration in seconds for the producer to run (default: 60)
 * `-i, --interval <milliseconds>`: Interval in milliseconds between producing events (default: 500)
 * `-h, --help`: Display help information
 
-You can also run the packaged jar with all dependencies:
+== Shared Consumer Group Semantics vs. Traditional Consumer Group Semantics
 
-[source,bash]
-----
-# Run with default settings
-java -jar target/queues-for-kafka-1.0-SNAPSHOT-jar-with-dependencies.jar
+Let's compare and contrast these different consumer semantics:
 
-# Run with custom settings
-java -jar target/queues-for-kafka-1.0-SNAPSHOT-jar-with-dependencies.jar -d 30 -i 200
-----
-
-== How It Works
-
-. The application creates a producer and multiple consumers:
-  * One traditional consumer that receives all messages (broadcast semantics)
-  * Two shared queue consumers that each receive a subset of messages (queue semantics)
-. The producer serializes events
-. The consumers deserialize events
-. The shared consumer group demonstrates how Kafka 4.0's queue feature ensures each message is processed by exactly one consumer in the group
-
-== Queue Semantics vs. Broadcast Semantics
-
-This project demonstrates both message consumption patterns:
-
-=== Traditional Consumer Group (Broadcast)
+=== Traditional Consumer Group
 * Every partition's messages go to one consumer in the group
 * If there are more consumers than partitions, some consumers will be idle
 * Adding consumers only helps if they consume from different partitions
@@ -151,6 +123,8 @@ NOTE: The "queue" protocol is considered an unstable API in Kafka 4.0, so you mu
 
 When you run the application, you should see output similar to:
 
+// TODO: Update output
+
 [source,text]
 ----
 10:45:22.123 [main] INFO io.confluent.devrel.App - Starting Kafka Protobuf Serialization Example with Kafka 4.0 Queues
@@ -184,22 +158,10 @@ When you run the application, you should see output similar to:
 10:45:46.234 [main] INFO io.confluent.devrel.App - Kafka Protobuf Serialization Example completed
 ----
 
+// TODO: Update explanation
 Notice in the output that:
 
 1. The traditional consumer receives all messages
 2. Each shared consumer only receives some of the messages (they split the workload)
 3. The shared consumers take different amounts of time to process their messages
 4. No message is processed by both shared consumers - each message is handled exactly once
-
-== Unit Testing
-
-The project includes comprehensive unit tests for both the producer and consumer components:
-
-=== Producer Tests
-* Verify that messages are sent correctly with the expected topic, key, and value
-* Ensure resources are properly cleaned up when the producer is closed
-
-=== Consumer Tests
-* Verify that the consumer correctly processes records and invokes handlers
-* Ensure the consumer continues processing even when handlers throw exceptions
-* Test proper shutdown and cleanup of resources 

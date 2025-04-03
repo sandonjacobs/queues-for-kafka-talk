@@ -44,7 +44,7 @@ public class ConsumerArgsParser extends CommandLineArguments {
             System.exit(0);
         }
 
-        final int numConsumerArg = Integer.parseInt(cmd.getOptionValue("interval", "500"));
+        final int numConsumerArg = Integer.parseInt(cmd.getOptionValue("interval", "5"));
         final String kafkaPropsPath = cmd.getOptionValue("properties");
         return new ConsumerArgsParser(kafkaPropsPath, numConsumerArg);
     }

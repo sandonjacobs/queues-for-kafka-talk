@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class StringEvent {
+public class MyEvent {
 
     @JsonProperty
     private String id;

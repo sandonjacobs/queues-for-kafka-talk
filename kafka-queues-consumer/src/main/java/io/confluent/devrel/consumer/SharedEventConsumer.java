@@ -41,7 +41,7 @@ public class SharedEventConsumer<Key, Value> implements Runnable, AutoCloseable 
                     logger.debug("Consumer {}: Received event: key={}, value={}, partition={}, offset={}",
                             consumerId, record.key(), record.value(), record.partition(), record.offset());
                     try {
-                        eventHandler.handleEvent(record.key(), record.value(), record.partition());
+                        eventHandler.handleEvent(record.key(), record.value(), record.partition(), record.offset());
                     } catch (Exception e) {
                         logger.error("Consumer {}: Error handling event: {}", consumerId, e.getMessage(), e);
                     }
@@ -70,6 +70,6 @@ public class SharedEventConsumer<Key, Value> implements Runnable, AutoCloseable 
     }
     
     public interface EventHandler<Key, Value> {
-        void handleEvent(Key key, Value event, int partition);
+        void handleEvent(Key key, Value event, int partition, long offset);
     }
 } 
