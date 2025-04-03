@@ -11,7 +11,7 @@
     </root>
     
     <!-- Application logging -->
-    <logger name="io.confluent.devrel.producer" level="INFO" />
+    <logger name="io.confluent.devrel" level="INFO" />
     
     <!-- Kafka client logging -->
     <logger name="org.apache.kafka" level="WARN" />

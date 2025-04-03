@@ -10,7 +10,7 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>kafka-queues-common</module>
+        <module>common</module>
         <module>kafka-producer</module>
         <module>kafka-queues-consumer</module>
     </modules>

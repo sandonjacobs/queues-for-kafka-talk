@@ -10,7 +10,9 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>kafka-queues-common</artifactId>
+    <artifactId>common</artifactId>
+    <name>Common</name>
+    <description>Common utilities and configuration for the Queues for Kafka Talk</description>
 
     <dependencies>
         <!-- Kafka client -->

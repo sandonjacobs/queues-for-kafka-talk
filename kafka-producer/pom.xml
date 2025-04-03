@@ -99,6 +99,8 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <configuration>
                     <mainClass>io.confluent.devrel.producer.ProducerApp</mainClass>
+                    <addResourcesToClasspath>true</addResourcesToClasspath>
+                    <includeProjectDependencies>true</includeProjectDependencies>
                 </configuration>
             </plugin>
         </plugins>

@@ -3,6 +3,8 @@ package io.confluent.devrel.common.config;
 import org.apache.kafka.clients.consumer.KafkaShareConsumer;
 import org.apache.kafka.clients.consumer.ShareConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,14 +16,16 @@ import java.util.Properties;
  * Shared Kafka configuration used across modules.
  */
 public class KafkaConfig {
+
+    private static final Logger logger = LoggerFactory.getLogger(KafkaConfig.class);
     // Kafka configuration
     public static final String BOOTSTRAP_SERVERS = "localhost:9092";
     public static final String TOPIC = "events-string";
     public static final String CONSUMER_GROUP = "event-processor";
     public static final String SHARED_CONSUMER_GROUP = "queue-event-processors";
 
-    private static final String DEFAULT_PRODUCER_CONFIG = "default-producer.properties";
-    private static final String DEFAULT_CONSUMER_CONFIG = "default-consumer.properties";
+    private static final String DEFAULT_PRODUCER_CONFIG = "/default-producer.properties";
+    private static final String DEFAULT_CONSUMER_CONFIG = "/default-consumer.properties";
 
 
     public static <K, V> KafkaProducer<K, V> createProducer() throws IOException {
@@ -77,23 +81,28 @@ public class KafkaConfig {
 
     /**
      * First attempts to load the file from the classpath, then falls back to using the provided path as an absolute path.
-     * @param path
+     * @param path The path to the file, either in classpath or filesystem
      * @return InputStream from the location specified
      * @throws IOException if the configuration file cannot be found or read
      */
-    static InputStream streamFromFile(String path) throws IOException {
-        // First try to load from classpath
-        InputStream props = ClassLoader.getSystemResourceAsStream(path);
-
-        // If not found in classpath, try as a file path
-        if (props == null) {
-            File configFile = new File(path);
-            if (!configFile.exists()) {
-                throw new IOException("Configuration file not found in classpath or at path: " + path);
-            }
-            props = new FileInputStream(configFile);
+    private static InputStream streamFromFile(String path) throws IOException {
+        logger.info("Loading configuration from file: {}", path);
+        
+        // First try the filesystem
+        File file = new File(path);
+        if (file.exists()) {
+            logger.info("Found configuration file at: {}", file.getAbsolutePath());
+            return new FileInputStream(file);
         }
         
-        return props;
+        // If not found, try target/classes
+        String targetPath = path.replace("src/main/resources", "target/classes");
+        file = new File(targetPath);
+        if (file.exists()) {
+            logger.info("Found configuration file at: {}", file.getAbsolutePath());
+            return new FileInputStream(file);
+        }
+        
+        throw new IOException("Configuration file not found at path: " + path);
     }
 } 

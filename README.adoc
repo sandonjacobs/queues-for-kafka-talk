@@ -1,167 +1,172 @@
-= Shared Kafka Consumer Groups (aka Queues for Kafka)
+= Kafka Shared Consumer Groups (KIP-932: Queues for Kafka)
+Sandon Jacobs <sandon.jacobs@confluent.io>
+:doctype: book
+:icons: font
+:source-highlighter: rouge
+:toc: left
+:toc-title: Table of Contents
+:toclevels: 2
+:sectnums:
+:sectnumlevels: 2
+:experimental:
+:docinfo1:
 
-This project demonstrates demostrates the EARLY ACCESS version of KIP-932, a.k.a "Queues for Kafka." You won't find the word
-"queue" used in the internal vocabulary of most Kafka developers. This new shared consumer group coordination is designed to bring some
-queue-like functionality - native to the JMS/MQ world - into Kafka.
+== Overview
 
-== Project Highlights
+This project demonstrates the use of Apache Kafka's Share Consumers feature (KIP-932) through a practical example. It includes a producer that generates events and a consumer that processes them using the share consumer protocol.
 
-* Uses Apache Kafka 4.0.0
-** There are a number of unsupported, non-production worthy feature enabled to make the KIP-932 functionality accessible for this demo.
-* Produces events to a Kafka topic - serialized as a String
-* Consumes events deserialized from the same Kafka topic, using the SharedConsumer implementation.
-** kafka-consumer app is the traditional Kafka consumer group, with partition assignment.
-** kafka-queue-consumer app will create a given number of threads, all with SharedConsumer instances of the same consumer group id.
+== Project Structure
 
-== Prerequisites
+The project is organized into three modules:
 
-* Java 21 or higher
-* Maven 3.8 or higher
-* Docker and Docker Compose (for running Kafka locally)
+* `common`: Shared utilities and configuration
+* `kafka-producer`: Event producer application
+* `kafka-queues-consumer`: Consumer application using share consumers
 
-== Setting Up Kafka
-You can use Docker Compose to run Apache Kafka 4.0.0, supporting Early Access unstable features (KIP-932):
+== Building and Testing
 
-[source,bash]
-----
-# Start the services
-docker-compose up -d
-----
+The project uses Maven for building and testing. A Makefile is provided to simplify common operations.
 
-The docker-compose.yml file contains:
+=== Building the Project
 
-* Apache Kafka 4.0.0 (pure KRaft mode without Zookeeper)
-
-== Building and Running the Application
+To build the entire project:
 
 [source,bash]
 ----
-# Build the application
-mvn clean compile
-
-# Run the tests
-mvn test
-
-# Package the application
-mvn package
-
-# Run the application with default settings (producer runs for 60 seconds with 500ms interval)
-mvn exec:java
+make build
 ----
 
-You can configure the application's behavior using command-line options:
+This will clean, compile, and package all modules.
+
+=== Running Tests
+
+To run all tests across all modules:
 
 [source,bash]
 ----
-# Run with custom duration (30 seconds) and interval (200ms)
-# TODO: Fix these sections, how to run the consumer apps then the producer app.
-mvn exec:java -Dexec.args="-d 30 -i 200"
-
-# Show help with all available options
-mvn exec:java -Dexec.args="-h"
+make test
 ----
 
-Available command-line options:
+To run tests for specific modules:
 
-// TODO update this
-
-* `-d, --duration <seconds>`: Duration in seconds for the producer to run (default: 60)
-* `-i, --interval <milliseconds>`: Interval in milliseconds between producing events (default: 500)
-* `-h, --help`: Display help information
-
-== Shared Consumer Group Semantics vs. Traditional Consumer Group Semantics
-
-Let's compare and contrast these different consumer semantics:
-
-=== Traditional Consumer Group
-* Every partition's messages go to one consumer in the group
-* If there are more consumers than partitions, some consumers will be idle
-* Adding consumers only helps if they consume from different partitions
-* Useful for general stream processing
-
-=== Shared Consumer Group (Queue-like Behavior)
-* Implemented using Kafka 4.0's new shared consumer group ("Queues for Kafka") feature
-* Messages are distributed across consumers for parallel processing
-* Adding more consumers increases throughput regardless of partition count
-* Ensures each message is processed by exactly one consumer
-* Useful for work distribution and task processing
-
-==== Enabling Queue Semantics
-
-To enable the shared consumer group feature (Queues for Kafka):
-
-1. *Broker Configuration*: Enable the queue protocol on your Kafka brokers
-+
-[source,yaml]
+[source,bash]
 ----
-# In docker-compose.yml
-KAFKA_GROUP_PROTOCOL_CONFIG_QUEUE_ENABLED: "true"
-KAFKA_UNSTABLE_API_VERSIONS_ENABLE: "true"  # Required for new features
+# Run tests for common module
+make test-common
+
+# Run tests for producer module
+make test-kafka-producer
+
+# Run tests for consumer module
+make test-queue-consumer
 ----
 
-2. *Consumer Configuration*: Configure your consumers to use the queue protocol
-+
-[source,java]
+== Docker Environment
+
+The project includes a Docker Compose setup for running Kafka and related services.
+
+=== Starting the Environment
+
+To start the Kafka environment:
+
+[source,bash]
 ----
-// Enable unstable APIs to access newer features like the queue protocol
-props.put("unstable.api.versions.enable", "true");
-
-// Use the queue protocol for shared consumer groups
-props.put("group.protocol", "queue");
-
-// Process fewer records at a time for better load balancing
-props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10");
-
-// Use shorter poll intervals
-props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "5000");
-props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
+make docker-start
 ----
 
-NOTE: The "queue" protocol is considered an unstable API in Kafka 4.0, so you must enable unstable API versions on both brokers and clients to use this feature.
+This will start all required services in detached mode.
 
-== Example Output
+=== Viewing Logs
 
-When you run the application, you should see output similar to:
+To view the logs from all services:
 
-// TODO: Update output
-
-[source,text]
+[source,bash]
 ----
-10:45:22.123 [main] INFO io.confluent.devrel.App - Starting Kafka Protobuf Serialization Example with Kafka 4.0 Queues
-10:45:22.567 [main] INFO io.confluent.devrel.producer.EventProducer - Event producer initialized for topic: events
-10:45:22.678 [main] INFO io.confluent.devrel.consumer.EventConsumer - Event consumer initialized for topic: events with group: event-processor
-10:45:22.789 [main] INFO io.confluent.devrel.consumer.SharedEventConsumer - Shared event consumer shared-consumer-1 initialized for topic: events with group: shared-event-processors
-10:45:22.901 [main] INFO io.confluent.devrel.consumer.SharedEventConsumer - Shared event consumer shared-consumer-2 initialized for topic: events with group: shared-event-processors
-10:45:22.950 [main] INFO io.confluent.devrel.App - All consumers started, waiting for stability...
-10:45:25.953 [main] INFO io.confluent.devrel.App - Starting to produce events...
-10:45:26.456 [main] INFO io.confluent.devrel.producer.EventProducer - Sent event with id: 2e15c334-0f9b-43ec-8f3a-9c0e11aa0b57 and type: CREATE
-
-# Traditional consumer gets ALL messages (broadcast semantics)
-10:45:26.789 [pool-1-thread-1] INFO io.confluent.devrel.App - Traditional consumer processing event: id=2e15c334-0f9b-43ec-8f3a-9c0e11aa0b57, type=CREATE, content=Sample message 0
-
-# Shared consumers split the messages between them (queue semantics)
-10:45:26.790 [pool-1-thread-2] INFO io.confluent.devrel.App - Shared consumer 1 starting processing of event: id=2e15c334-0f9b-43ec-8f3a-9c0e11aa0b57
-10:45:27.001 [main] INFO io.confluent.devrel.producer.EventProducer - Sent event with id: f8a7b432-2c13-47d8-93e5-8b9c71a2fdef and type: CREATE
-10:45:27.102 [pool-1-thread-1] INFO io.confluent.devrel.App - Traditional consumer processing event: id=f8a7b432-2c13-47d8-93e5-8b9c71a2fdef, type=CREATE, content=Sample message 1
-10:45:27.103 [pool-1-thread-3] INFO io.confluent.devrel.App - Shared consumer 2 starting processing of event: id=f8a7b432-2c13-47d8-93e5-8b9c71a2fdef
-10:45:27.904 [pool-1-thread-3] INFO io.confluent.devrel.App - Shared consumer 2 completed processing of event: id=f8a7b432-2c13-47d8-93e5-8b9c71a2fdef
-10:45:28.290 [pool-1-thread-2] INFO io.confluent.devrel.App - Shared consumer 1 completed processing of event: id=2e15c334-0f9b-43ec-8f3a-9c0e11aa0b57
-
-# More events are processed, with each shared consumer handling different messages
-...
-
-10:45:35.953 [main] INFO io.confluent.devrel.App - All events sent, waiting for processing to complete...
-10:45:45.954 [main] INFO io.confluent.devrel.App - Shutting down consumers...
-10:45:46.102 [pool-1-thread-1] INFO io.confluent.devrel.consumer.EventConsumer - Consumer closed
-10:45:46.103 [pool-1-thread-2] INFO io.confluent.devrel.consumer.SharedEventConsumer - Consumer shared-consumer-1 closed
-10:45:46.104 [pool-1-thread-3] INFO io.confluent.devrel.consumer.SharedEventConsumer - Consumer shared-consumer-2 closed
-10:45:46.234 [main] INFO io.confluent.devrel.App - Kafka Protobuf Serialization Example completed
+make docker-logs
 ----
 
-// TODO: Update explanation
-Notice in the output that:
+=== Stopping and Cleaning Up
 
-1. The traditional consumer receives all messages
-2. Each shared consumer only receives some of the messages (they split the workload)
-3. The shared consumers take different amounts of time to process their messages
-4. No message is processed by both shared consumers - each message is handled exactly once
+To stop the environment:
+
+[source,bash]
+----
+make docker-stop
+----
+
+To remove all containers and networks:
+
+[source,bash]
+----
+make docker-remove
+----
+
+To stop and remove everything in one command:
+
+[source,bash]
+----
+make docker-clean
+----
+
+== Running the Applications
+
+=== Producer Application
+
+To view help for the producer application:
+
+[source,bash]
+----
+make help-kafka-producer
+----
+
+To run the producer with custom arguments:
+
+[source,bash]
+----
+make run-kafka-producer ARGS="--properties /path/to/properties --duration 120 --interval 1000"
+----
+
+Available arguments:
+* `--properties`: Path to Kafka client properties file (required)
+* `--duration`: Duration in seconds for the producer to run (default: 60)
+* `--interval`: Interval in milliseconds between producing events (default: 500)
+
+=== Consumer Application
+
+To view help for the consumer application:
+
+[source,bash]
+----
+make help-queue-consumer
+----
+
+To run the consumer with custom arguments:
+
+[source,bash]
+----
+make run-queue-consumer ARGS="--properties /path/to/properties --group-id my-group --consumers 5"
+----
+
+Available arguments:
+* `--properties`: Path to Kafka client properties file (required)
+* `--group-id`: Consumer group ID (required)
+* `--consumers`: Number of consumer instances to run (default: 1)
+
+== Getting Help
+
+To view all available Makefile targets:
+
+[source,bash]
+----
+make help
+----
+
+== License
+
+This project is licensed under the Apache License 2.0.
+
+== Acknowledgements
+
+* Apache Kafka
+* Confluent Platform
+* Docker

@@ -36,7 +36,7 @@ test:
 
 # Run unit tests for a specific module
 test-common:
-	$(MVN) test -pl kafka-queues-common
+	$(MVN) test -pl common
 
 test-kafka-producer:
 	$(MVN) test -pl kafka-producer
@@ -44,10 +44,18 @@ test-kafka-producer:
 test-queue-consumer:
 	$(MVN) test -pl kafka-queues-consumer
 
+# Default properties file paths
+PRODUCER_PROPS ?= kafka-producer/src/main/resources/default-producer.properties
+CONSUMER_PROPS ?= kafka-queues-consumer/src/main/resources/default-consumer.properties
+
 # Run the producer application with optional arguments
-# Usage: make run-kafka-producer ARGS="--properties /path/to/properties --duration 120 --interval 1000"
+# Usage: make run-kafka-producer [PRODUCER_PROPS=/path/to/properties] [ARGS="--duration 120 --interval 1000"]
 run-kafka-producer:
-	$(MVN) exec:java -pl kafka-producer -Dexec.args="$(ARGS)"
+	@if [ ! -f "$(PRODUCER_PROPS)" ]; then \
+		echo "${RED}${ERROR} Properties file not found: $(PRODUCER_PROPS)${RESET}"; \
+		exit 1; \
+	fi
+	$(MVN) exec:java -pl kafka-producer -Dexec.mainClass="io.confluent.devrel.producer.ProducerApp" -Dexec.args="--properties $(PRODUCER_PROPS) $(ARGS)"
 
 help-kafka-producer:
 	$(MVN) exec:java -pl kafka-producer -Dexec.args="--help"
@@ -56,9 +64,13 @@ help-queue-consumer:
 	$(MVN) exec:java -pl kafka-queues-consumer -Dexec.args="--help"
 
 # Run the consumer application with optional arguments
-# Usage: make run-queue-consumer ARGS="--properties /path/to/properties --group-id my-group"
+# Usage: make run-queue-consumer [CONSUMER_PROPS=/path/to/properties] [ARGS="--group-id my-group"]
 run-queue-consumer:
-	$(MVN) exec:java -pl kafka-queues-consumer -Dexec.args="$(ARGS)"
+	@if [ ! -f "$(CONSUMER_PROPS)" ]; then \
+		echo "${RED}${ERROR} Properties file not found: $(CONSUMER_PROPS)${RESET}"; \
+		exit 1; \
+	fi
+	$(MVN) exec:java -pl kafka-queues-consumer -Dexec.mainClass="io.confluent.devrel.consumer.ConsumerApp" -Dexec.args="--properties $(CONSUMER_PROPS) $(ARGS)"
 
 # Clean the project
 clean:
@@ -120,8 +132,12 @@ help:
 	@echo "	🚀 run-queue-consumer   - Run the queue consumer application"
 	@echo ""
 	@echo "	** Example usage with arguments:"
-	@echo "		make run-kafka-producer ARGS=\"--properties /path/to/properties --duration 120 --interval 1000\""
-	@echo "	 	make run-queue-consumer ARGS=\"--properties /path/to/properties --group-id my-group --consumers 5\""
+	@echo "		make run-kafka-producer [PRODUCER_PROPS=/path/to/properties] [ARGS=\"--duration 120 --interval 1000\"]"
+	@echo "	 	make run-queue-consumer [CONSUMER_PROPS=/path/to/properties] [ARGS=\"--group-id my-group --consumers 5\"]"
+	@echo ""
+	@echo "	** Default properties files:"
+	@echo "		Producer: kafka-producer/src/main/resources/default-producer.properties"
+	@echo "		Consumer: kafka-queues-consumer/src/main/resources/default-consumer.properties"
 	@echo "${YELLOW}=======================================================================================${RESET}"
 
 .PHONY: all build test test-common test-kafka-producer test-queue-consumer run-kafka-producer run-queue-consumer clean docker-start docker-stop docker-remove docker-clean docker-logs help 
