@@ -20,7 +20,7 @@ public class ConsumerArgsParser extends CommandLineArguments {
                 .longOpt("consumers")
                 .hasArg()
                 .argName("count")
-                .desc("Number of shared consumers to start (default: 3, max: 10)")
+                .desc("Number of shared consumers to start (default: 5, max: 10)")
                 .type(Number.class)
                 .build());
 
@@ -30,7 +30,7 @@ public class ConsumerArgsParser extends CommandLineArguments {
         CommandLine cmd = null;
 
         try {
-            cmd = ProducerArgsParser.parse(args, options, parser);
+            cmd = ConsumerArgsParser.parse(args, options, parser);
         } catch (ParseException e) {
             System.err.println("Error parsing command line arguments: " + e.getMessage());
             formatter.printHelp("kafka-queues-demo", options, true);
@@ -44,7 +44,10 @@ public class ConsumerArgsParser extends CommandLineArguments {
             System.exit(0);
         }
 
-        final int numConsumerArg = Integer.parseInt(cmd.getOptionValue("interval", "5"));
+        final int numConsumerArg = Integer.parseInt(cmd.getOptionValue("consumers", "5"));
+        if (numConsumerArg > 10) {
+            throw new IllegalArgumentException("Number of consumers must be less than 10");
+        }
         final String kafkaPropsPath = cmd.getOptionValue("properties");
         return new ConsumerArgsParser(kafkaPropsPath, numConsumerArg);
     }

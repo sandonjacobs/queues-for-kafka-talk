@@ -33,7 +33,7 @@ public class ConsumerApp {
         Optional<String> kafkaPropsPath = Optional.ofNullable(cmdArgs.getKafkaPropsPath());
 
         final int numSharedConsumers = cmdArgs.getNumConsumers();
-        logger.info("Starting Kafka Event Consumers with {} shared consumers (KIP-932 Queue mode)", numSharedConsumers);
+        logger.info("Starting {} Kafka Share Consumers (KIP-932 Queue mode)", numSharedConsumers);
         logger.info("Using GROUP_PROTOCOL_CONFIG=CONSUMER for queue semantics");
         
         // Create a thread pool with named threads
