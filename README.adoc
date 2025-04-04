@@ -17,9 +17,8 @@ This project demonstrates the use of Apache Kafka's Share Consumers feature (KIP
 
 == Project Structure
 
-The project is organized into three modules:
+The project is organized into these modules:
 
-* `common`: Shared utilities and configuration
 * `kafka-producer`: Event producer application
 * `kafka-queues-consumer`: Consumer application using share consumers
 
@@ -51,9 +50,6 @@ To run tests for specific modules:
 
 [source,bash]
 ----
-# Run tests for common module
-make test-common
-
 # Run tests for producer module
 make test-kafka-producer
 
