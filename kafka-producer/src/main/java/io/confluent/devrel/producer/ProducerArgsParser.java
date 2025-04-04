@@ -1,22 +1,36 @@
-package io.confluent.devrel.common.args;
+package io.confluent.devrel.producer;
 
 import lombok.Getter;
 import org.apache.commons.cli.*;
 
 @Getter
-public class ProducerArgsParser extends CommandLineArguments {
+public class ProducerArgsParser {
 
     private final int duration;
     private final int interval;
+    private final String kafkaPropsPath;
 
     private ProducerArgsParser(String kafkaPropsPath, int duration, int interval) {
-        super(kafkaPropsPath);
+        this.kafkaPropsPath = kafkaPropsPath;
         this.duration = duration;
         this.interval = interval;
     }
 
     public static ProducerArgsParser parseOptions(String[] args) {
-        Options options = getBaseOptions(args);
+        Options options = new Options();
+
+        options.addOption(Option.builder("p")
+                .longOpt("properties")
+                .hasArg()
+                .argName("properties")
+                .desc("Kafka Client properties file path.")
+                .type(String.class)
+                .build());
+
+        options.addOption(Option.builder("h")
+                .longOpt("help")
+                .desc("Display help information")
+                .build());
 
         options.addOption(Option.builder("d")
                 .longOpt("duration")
@@ -39,10 +53,10 @@ public class ProducerArgsParser extends CommandLineArguments {
         CommandLine cmd = null;
 
         try {
-            cmd = ProducerArgsParser.parse(args, options, parser);
+            cmd = parser.parse(options, args);
         } catch (ParseException e) {
             System.err.println("Error parsing command line arguments: " + e.getMessage());
-            formatter.printHelp("kafka-queues-demo", options, true);
+            formatter.printHelp("kafka-producer", options, true);
             System.exit(1);
         }
 

@@ -1,7 +1,5 @@
 package io.confluent.devrel.consumer;
 
-import io.confluent.devrel.common.args.ConsumerArgsParser;
-import io.confluent.devrel.common.config.KafkaConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ShareConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -72,7 +70,7 @@ public class ConsumerApp {
                                     Thread.currentThread().interrupt();
                                 }
                             },
-                            KafkaConfig.TOPIC);
+                            "events-string");
                     sharedConsumers.add(consumer);
                     executorService.submit(consumer);
                 }
@@ -113,7 +111,7 @@ public class ConsumerApp {
 
     static ShareConsumer<String, String> createConsumer(final Optional<String> consumerConfigPath) throws IOException {
         Properties propOverrides = new Properties();
-        propOverrides.put(ConsumerConfig.GROUP_ID_CONFIG, KafkaConfig.SHARED_CONSUMER_GROUP);
+        propOverrides.put(ConsumerConfig.GROUP_ID_CONFIG, ShareConsumerFactory.GROUP_ID_CONFIG);
         propOverrides.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         propOverrides.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
 
@@ -131,9 +129,9 @@ public class ConsumerApp {
         propOverrides.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
 
         if (consumerConfigPath.isPresent()) {
-            return KafkaConfig.createConsumer(consumerConfigPath.get(), propOverrides);
+            return ShareConsumerFactory.createConsumer(consumerConfigPath.get(), propOverrides);
         } else {
-            return KafkaConfig.createConsumer(propOverrides);
+            return ShareConsumerFactory.createConsumer(propOverrides);
         }
     }
 }

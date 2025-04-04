@@ -1,14 +1,14 @@
 package io.confluent.devrel.producer;
 
-import io.confluent.devrel.common.args.ProducerArgsParser;
-import io.confluent.devrel.common.config.KafkaConfig;
-import io.confluent.devrel.common.model.MyEvent;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -17,6 +17,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class ProducerApp {
     private static final Logger logger = LoggerFactory.getLogger(ProducerApp.class);
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final List<String> TYPE_OPTIONS = List.of("CREATE", "UPDATE", "DELETE");
     
     public static void main(String[] args) throws Exception {
         // Parse command line arguments
@@ -33,17 +36,16 @@ public class ProducerApp {
         Optional<String> propertyPathOverride = Optional.ofNullable(cmdArgs.getKafkaPropsPath());
         KafkaProducer<String, String> kafkaProducer;
         if (propertyPathOverride.isPresent()) {
-            kafkaProducer = KafkaConfig.createProducer(propertyPathOverride.get());
+            kafkaProducer = ProducerFactory.createProducer(propertyPathOverride.get());
         } else {
-            kafkaProducer = KafkaConfig.createProducer();
+            kafkaProducer = ProducerFactory.createProducer();
         }
 
-        try (EventProducer<String, String> eventProducer = new EventProducer<>(kafkaProducer, KafkaConfig.TOPIC)) {
+        try (EventProducer<String, String> eventProducer = new EventProducer<>(kafkaProducer, "events-string")) {
             
             // Calculate end time based on duration parameter
             long endTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(producerDuration);
-            int counter = 0;
-            
+
             AtomicBoolean running = new AtomicBoolean(true);
             
             // Add a shutdown hook to gracefully terminate
@@ -57,13 +59,9 @@ public class ProducerApp {
             while (System.currentTimeMillis() < endTime && running.get()) {
                 String id = UUID.randomUUID().toString();
                 
-                MyEvent event = new MyEvent(
-                        id,
-                        "CREATE",
-                        "Sample message " + counter++
-                );
+                MyEvent event = new MyEvent(id, randomOption(), "Sample message " + id);
                 
-                eventProducer.sendEvent(id, event.toString());
+                eventProducer.sendEvent(id, objectMapper.writeValueAsString(event));
                 
                 // Wait between sends according to the interval parameter
                 Thread.sleep(producerInterval);
@@ -76,5 +74,10 @@ public class ProducerApp {
         }
         
         logger.info("Producer completed");
+    }
+
+    private static String randomOption() {
+        final int index = ThreadLocalRandom.current().nextInt(TYPE_OPTIONS.size()) % TYPE_OPTIONS.size();
+        return TYPE_OPTIONS.get(index);
     }
 } 

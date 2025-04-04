@@ -1,20 +1,29 @@
-package io.confluent.devrel.common.args;
+package io.confluent.devrel.consumer;
 
 import lombok.Getter;
 import org.apache.commons.cli.*;
 
 @Getter
-public class ConsumerArgsParser extends CommandLineArguments {
+public class ConsumerArgsParser {
 
     private final int numConsumers;
+    private final String kafkaPropsPath;
 
     ConsumerArgsParser(String kafkaPropsPath, int numConsumers) {
-        super(kafkaPropsPath);
+        this.kafkaPropsPath = kafkaPropsPath;
         this.numConsumers = numConsumers;
     }
 
     public static ConsumerArgsParser parseOptions(String[] args) {
-        Options options = getBaseOptions(args);
+        Options options = new Options();
+
+        options.addOption(Option.builder("p")
+                .longOpt("properties")
+                .hasArg()
+                .argName("properties")
+                .desc("Kafka Client properties file path.")
+                .type(String.class)
+                .build());
 
         options.addOption(Option.builder("c")
                 .longOpt("consumers")
@@ -30,10 +39,10 @@ public class ConsumerArgsParser extends CommandLineArguments {
         CommandLine cmd = null;
 
         try {
-            cmd = ConsumerArgsParser.parse(args, options, parser);
+            cmd = parser.parse(options, args);
         } catch (ParseException e) {
             System.err.println("Error parsing command line arguments: " + e.getMessage());
-            formatter.printHelp("kafka-queues-demo", options, true);
+            formatter.printHelp("kafka-queues-consumer", options, true);
             System.exit(1);
         }
 

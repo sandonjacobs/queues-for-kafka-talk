@@ -30,17 +30,9 @@ all: build
 build:
 	$(MVN) clean install
 
-# Build and install the common module
-build-common:
-	$(MVN) clean install -pl common
-
 # Run all unit tests
 test:
 	$(MVN) test
-
-# Run unit tests for a specific module
-test-common:
-	$(MVN) test -pl common
 
 test-kafka-producer:
 	$(MVN) test -pl kafka-producer
@@ -54,11 +46,12 @@ CONSUMER_PROPS ?= kafka-queues-consumer/src/main/resources/default-consumer.prop
 
 # Run the producer application with optional arguments
 # Usage: make run-kafka-producer [PRODUCER_PROPS=/path/to/properties] [ARGS="--duration 120 --interval 1000"]
-run-kafka-producer: build-common
+run-kafka-producer:
 	@if [ ! -f "$(PRODUCER_PROPS)" ]; then \
 		echo "${RED}${ERROR} Properties file not found: $(PRODUCER_PROPS)${RESET}"; \
 		exit 1; \
 	fi
+	$(MVN) compile -pl kafka-producer && \
 	$(MVN) exec:java -pl kafka-producer -Dexec.mainClass="io.confluent.devrel.producer.ProducerApp" -Dexec.args="--properties $(PRODUCER_PROPS) $(ARGS)"
 
 help-kafka-producer:
@@ -69,11 +62,12 @@ help-queue-consumer:
 
 # Run the consumer application with optional arguments
 # Usage: make run-queue-consumer [CONSUMER_PROPS=/path/to/properties] [ARGS="--consumers 10"]
-run-queue-consumer: build-common
+run-queue-consumer:
 	@if [ ! -f "$(CONSUMER_PROPS)" ]; then \
 		echo "${RED}${ERROR} Properties file not found: $(CONSUMER_PROPS)${RESET}"; \
 		exit 1; \
 	fi
+	$(MVN) compile -pl kafka-queues-consumer && \
 	$(MVN) exec:java -pl kafka-queues-consumer -Dexec.mainClass="io.confluent.devrel.consumer.ConsumerApp" -Dexec.args="--properties $(CONSUMER_PROPS) $(ARGS)"
 
 # Clean the project
@@ -107,7 +101,6 @@ help:
 	@echo "${BOLD}- Top level targets${RESET}"
 	@echo "	🏗️ all           - Build the entire project (default target)"
 	@echo "	🏗️ build         - Build the entire project"
-	@echo "	🏗️ build-common  - Build and install the common module"
 	@echo "	✅ test          - Run all unit tests"
 	@echo "	🧹 clean         - Clean the project"
 	@echo "	ℹ️ help          - Show this help message"
@@ -124,7 +117,6 @@ help:
 	@echo "${YELLOW}=======================================================================================${RESET}"
 	@echo ""
 	@echo "${BOLD}- Test Targets${RESET}"
-	@echo "	✅ test-common   - Run unit tests for common module"
 	@echo "	✅ test-producer - Run unit tests for producer module"
 	@echo "	✅ test-consumer - Run unit tests for consumer module"
 	@echo ""
@@ -136,7 +128,6 @@ help:
 	@echo "	ℹ️ help-queue-consumer  - Show help for queue consumer application"
 	@echo "	🚀 run-queue-consumer   - Run the queue consumer application"
 	@echo ""
-	@echo "	** Note: Running producer or consumer will automatically build and install the common module"
 	@echo "	** Example usage with arguments:"
 	@echo "		make run-kafka-producer [PRODUCER_PROPS=/path/to/properties] [ARGS=\"--duration 120 --interval 1000\"]"
 	@echo "	 	make run-queue-consumer [CONSUMER_PROPS=/path/to/properties] [ARGS=\"--consumers 5\"]"
@@ -146,4 +137,4 @@ help:
 	@echo "		Consumer: kafka-queues-consumer/src/main/resources/default-consumer.properties"
 	@echo "${YELLOW}=======================================================================================${RESET}"
 
-.PHONY: all build build-common test test-common test-kafka-producer test-queue-consumer run-kafka-producer run-queue-consumer clean docker-start docker-stop docker-remove docker-clean docker-logs help 
+.PHONY: all build test test-kafka-producer test-queue-consumer run-kafka-producer run-queue-consumer clean docker-start docker-stop docker-remove docker-clean docker-logs help

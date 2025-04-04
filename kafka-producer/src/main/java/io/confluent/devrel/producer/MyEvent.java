@@ -1,4 +1,4 @@
-package io.confluent.devrel.common.model;
+package io.confluent.devrel.producer;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

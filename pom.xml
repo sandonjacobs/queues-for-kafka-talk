@@ -10,7 +10,6 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>common</module>
         <module>kafka-producer</module>
         <module>kafka-queues-consumer</module>
     </modules>
@@ -76,6 +75,13 @@
                 <artifactId>logback-classic</artifactId>
                 <version>${logback.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>1.18.36</version>
+            </dependency>
+
 
             <!-- Google Guava -->
             <dependency>
