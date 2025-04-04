@@ -38,12 +38,11 @@ public class SharedEventConsumer<Key, Value> implements Runnable, AutoCloseable 
                 ConsumerRecords<Key, Value> records = consumer.poll(Duration.ofMillis(500));
                 
                 records.forEach(record -> {
-                    logger.debug("Consumer {}: Received event: key={}, value={}, partition={}, offset={}",
-                            consumerId, record.key(), record.value(), record.partition(), record.offset());
                     try {
                         eventHandler.handleEvent(record.key(), record.value(), record.partition(), record.offset());
                     } catch (Exception e) {
                         logger.error("Consumer {}: Error handling event: {}", consumerId, e.getMessage(), e);
+                        // throw new RuntimeException(e);
                     }
                 });
             }

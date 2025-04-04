@@ -112,10 +112,8 @@ public class ConsumerApp {
     static ShareConsumer<String, String> createConsumer(final Optional<String> consumerConfigPath) throws IOException {
         Properties propOverrides = new Properties();
         propOverrides.put(ConsumerConfig.GROUP_ID_CONFIG, ShareConsumerFactory.GROUP_ID_CONFIG);
-        propOverrides.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        propOverrides.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
 
-        propOverrides.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        // TODO: Can I read from the VERY Beginning of time for a topic?
         propOverrides.put("share.group." + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         // Enable unstable APIs to access newer features like the queue protocol
         propOverrides.put("unstable.api.versions.enable", "true");
