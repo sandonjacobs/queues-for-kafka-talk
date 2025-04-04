@@ -30,5 +30,26 @@ services:
       KAFKA_UNSTABLE_API_VERSIONS_ENABLE: "true"
       KAFKA_GROUP_COORDINATOR_REBALANCE_PROTOCOLS: "classic,consumer,share"
       KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 --list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - kafka-net
+
+  kafka-topics:
+    image: apache/kafka:4.0.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command: >
+      bash -c "
+        echo 'Kafka is ready, creating topic...' &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka:29092 --topic events-string --partitions 3 --replication-factor 1 &&
+        echo 'Topic events-string created successfully' &&
+        /opt/kafka/bin/kafka-topics.sh --describe --bootstrap-server kafka:29092 --topic events-string
+      "
     networks:
       - kafka-net

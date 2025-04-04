@@ -73,8 +73,6 @@ docker-stop:
 docker-remove:
 	docker compose down
 
-docker-logs:
-	docker compose logs -f
 
 # Clean up Docker environment (stop and remove containers)
 docker-clean: docker-stop docker-remove
@@ -101,7 +99,6 @@ help:
 	@echo "	🐳 docker-stop   - Stop the Kafka environment"
 	@echo "	🐳 docker-remove - Remove the Kafka environment"
 	@echo "	🐳 docker-clean  - Stop and remove the Kafka environment"
-	@echo "	🐳 docker-logs   - View Kafka environment logs"
 	@echo ""
 	@echo "${YELLOW}=======================================================================================${RESET}"
 	@echo ""
@@ -126,4 +123,4 @@ help:
 	@echo "		Consumer: kafka-queues-consumer/src/main/resources/default-consumer.properties"
 	@echo "${YELLOW}=======================================================================================${RESET}"
 
-.PHONY: all build test test-kafka-producer test-queue-consumer run-kafka-producer run-queue-consumer clean docker-start docker-stop docker-remove docker-clean docker-logs help
+.PHONY: all build test test-kafka-producer test-queue-consumer run-kafka-producer run-queue-consumer clean docker-start docker-stop docker-remove docker-clean docker-logs docker-logs-kafka docker-logs-topics help

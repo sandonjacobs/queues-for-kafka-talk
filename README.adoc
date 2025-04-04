@@ -70,15 +70,21 @@ To start the Kafka environment:
 make docker-start
 ----
 
-This will start all required services in detached mode.
+This will start all required services in detached mode, including:
+* Kafka broker
+* Topic creation service (creates the `events-string` topic with 3 partitions)
 
 === Viewing Logs
 
-To view the logs from all services:
+To view logs from a specific service:
 
 [source,bash]
 ----
-make docker-logs
+# View Kafka logs
+docker compose logs kafka
+
+# View topic creation logs
+docker compose logs kafka-topics
 ----
 
 === Stopping and Cleaning Up
