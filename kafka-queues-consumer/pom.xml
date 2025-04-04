@@ -16,7 +16,7 @@
         <!-- Common module -->
         <dependency>
             <groupId>io.confluent.devrel</groupId>
-            <artifactId>kafka-queues-common</artifactId>
+            <artifactId>common</artifactId>
         </dependency>
         
         <!-- SLF4J and Logback for logging -->

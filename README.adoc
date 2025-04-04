@@ -119,6 +119,13 @@ To view help for the producer application:
 make help-kafka-producer
 ----
 
+To run the producer with the provided default configuration and options:
+
+[source,bash]
+----
+make run-kafka-producer
+----
+
 To run the producer with custom arguments:
 
 [source,bash]
@@ -131,7 +138,7 @@ Available arguments:
 * `--duration`: Duration in seconds for the producer to run (default: 60)
 * `--interval`: Interval in milliseconds between producing events (default: 500)
 
-=== Consumer Application
+=== Queue Consumer Application
 
 To view help for the consumer application:
 
@@ -140,17 +147,23 @@ To view help for the consumer application:
 make help-queue-consumer
 ----
 
+To run the queue consumer with the provided default configuration and options:
+
+[source,bash]
+----
+make run-queue-consumer
+----
+
 To run the consumer with custom arguments:
 
 [source,bash]
 ----
-make run-queue-consumer ARGS="--properties /path/to/properties --group-id my-group --consumers 5"
+make run-queue-consumer ARGS="--properties /path/to/properties --consumers 5"
 ----
 
 Available arguments:
-* `--properties`: Path to Kafka client properties file (required)
-* `--group-id`: Consumer group ID (required)
-* `--consumers`: Number of consumer instances to run (default: 1)
+* `--properties`: Path to Kafka client properties file (optional)
+* `--consumers`: Number of consumer instances to run (default: 5)
 
 == Getting Help
 

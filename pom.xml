@@ -54,7 +54,7 @@
             <!-- Internal module dependencies -->
             <dependency>
                 <groupId>io.confluent.devrel</groupId>
-                <artifactId>kafka-queues-common</artifactId>
+                <artifactId>common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
