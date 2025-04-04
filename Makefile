@@ -41,18 +41,12 @@ test-queue-consumer:
 	$(MVN) test -pl kafka-queues-consumer
 
 # Default properties file paths
-PRODUCER_PROPS ?= kafka-producer/src/main/resources/default-producer.properties
 CONSUMER_PROPS ?= kafka-queues-consumer/src/main/resources/default-consumer.properties
 
 # Run the producer application with optional arguments
 # Usage: make run-kafka-producer [PRODUCER_PROPS=/path/to/properties] [ARGS="--duration 120 --interval 1000"]
 run-kafka-producer:
-	@if [ ! -f "$(PRODUCER_PROPS)" ]; then \
-		echo "${RED}${ERROR} Properties file not found: $(PRODUCER_PROPS)${RESET}"; \
-		exit 1; \
-	fi
-	$(MVN) compile -pl kafka-producer && \
-	$(MVN) exec:java -pl kafka-producer -Dexec.mainClass="io.confluent.devrel.producer.ProducerApp" -Dexec.args="--properties $(PRODUCER_PROPS) $(ARGS)"
+	$(MVN) compile exec:java -pl kafka-producer -Dexec.mainClass="io.confluent.devrel.producer.ProducerApp" -Dexec.args="$(if $(PRODUCER_PROPS),--properties $(PRODUCER_PROPS)) $(ARGS)"
 
 help-kafka-producer:
 	$(MVN) exec:java -pl kafka-producer -Dexec.args="--help"
@@ -63,12 +57,7 @@ help-queue-consumer:
 # Run the consumer application with optional arguments
 # Usage: make run-queue-consumer [CONSUMER_PROPS=/path/to/properties] [ARGS="--consumers 10"]
 run-queue-consumer:
-	@if [ ! -f "$(CONSUMER_PROPS)" ]; then \
-		echo "${RED}${ERROR} Properties file not found: $(CONSUMER_PROPS)${RESET}"; \
-		exit 1; \
-	fi
-	$(MVN) compile -pl kafka-queues-consumer && \
-	$(MVN) exec:java -pl kafka-queues-consumer -Dexec.mainClass="io.confluent.devrel.consumer.ConsumerApp" -Dexec.args="--properties $(CONSUMER_PROPS) $(ARGS)"
+	$(MVN) compile exec:java -pl kafka-queues-consumer -Dexec.mainClass="io.confluent.devrel.consumer.ConsumerApp" -Dexec.args="$(if $(CONSUMER_PROPS),--properties $(CONSUMER_PROPS)) $(ARGS)"
 
 # Clean the project
 clean:
