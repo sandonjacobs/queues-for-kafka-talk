@@ -1,5 +1,6 @@
 package io.confluent.devrel.consumer;
 
+import org.apache.kafka.clients.consumer.AcknowledgeType;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.ShareConsumer;
 import org.apache.kafka.common.errors.WakeupException;
@@ -40,10 +41,16 @@ public class SharedEventConsumer<Key, Value> implements Runnable, AutoCloseable 
                 records.forEach(record -> {
                     try {
                         eventHandler.handleEvent(record.key(), record.value(), record.partition(), record.offset());
+                        // Acknowledge this event was handled without error.
+                        consumer.acknowledge(record, AcknowledgeType.ACCEPT);
                     } catch (Exception e) {
                         logger.error("Consumer {}: Error handling event: {}", consumerId, e.getMessage(), e);
-                        // throw new RuntimeException(e);
+                        // NOTE: Choosing to RELEASE on any exception here.
+                        // Likely would discern the specific Exception type to determine if the
+                        // underlying issue was worthy of the retry logic of the share consumer.
+                        consumer.acknowledge(record, AcknowledgeType.RELEASE);
                     }
+                    consumer.commitSync();
                 });
             }
         } catch (WakeupException e) {
