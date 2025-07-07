@@ -62,8 +62,8 @@ public class ProducerArgsParser {
 
         showHelp(options, cmd, formatter);
 
-        final int durationArg = Integer.parseInt(cmd.getOptionValue("duration", "60"));
-        final int intervalArg = Integer.parseInt(cmd.getOptionValue("interval", "500"));
+        final int durationArg = Integer.parseInt(cmd.getOptionValue("duration", "120"));
+        final int intervalArg = Integer.parseInt(cmd.getOptionValue("interval", "200"));
         final String kafkaPropsPath = cmd.getOptionValue("properties");
 
         return new ProducerArgsParser(kafkaPropsPath, durationArg, intervalArg);
