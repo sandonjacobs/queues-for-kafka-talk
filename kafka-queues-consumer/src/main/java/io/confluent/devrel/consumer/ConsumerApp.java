@@ -117,8 +117,7 @@ public class ConsumerApp {
         // Enable unstable APIs to access newer features like the queue protocol
         propOverrides.put("unstable.api.versions.enable", "true");
         // KIP-932 configuration for Kafka 4.0+
-        // Set the GROUP_PROTOCOL_CONFIG to CONSUMER for queue semantics
-        propOverrides.put(ConsumerConfig.GROUP_PROTOCOL_CONFIG, "CONSUMER");
+        propOverrides.put(ConsumerConfig.SHARE_ACKNOWLEDGEMENT_MODE_CONFIG, "explicit");
         // Process fewer records at a time for better load balancing
         propOverrides.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "5");
         // Use shorter poll intervals
