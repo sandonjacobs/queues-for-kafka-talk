@@ -36,7 +36,7 @@ public class ProducerArgsParser {
                 .longOpt("duration")
                 .hasArg()
                 .argName("seconds")
-                .desc("Duration in seconds for the producer to run (default: 60)")
+                .desc("Duration in seconds for the producer to run (default: 300)")
                 .type(Number.class)
                 .build());
 
@@ -62,7 +62,7 @@ public class ProducerArgsParser {
 
         showHelp(options, cmd, formatter);
 
-        final int durationArg = Integer.parseInt(cmd.getOptionValue("duration", "120"));
+        final int durationArg = Integer.parseInt(cmd.getOptionValue("duration", "300"));
         final int intervalArg = Integer.parseInt(cmd.getOptionValue("interval", "200"));
         final String kafkaPropsPath = cmd.getOptionValue("properties");
 

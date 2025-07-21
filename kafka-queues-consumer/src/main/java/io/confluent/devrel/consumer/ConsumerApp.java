@@ -119,7 +119,7 @@ public class ConsumerApp {
         // KIP-932 configuration for Kafka 4.0+
         propOverrides.put(ConsumerConfig.SHARE_ACKNOWLEDGEMENT_MODE_CONFIG, "explicit");
         // Process fewer records at a time for better load balancing
-        propOverrides.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "5");
+        propOverrides.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10");
         // Use shorter poll intervals
         propOverrides.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "5000");
         propOverrides.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
