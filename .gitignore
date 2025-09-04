@@ -23,6 +23,8 @@ buildNumber.properties
 
 # Log files
 *.log
+producer.log
+consumer.log
 
 # Package files
 *.jar

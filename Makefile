@@ -43,10 +43,16 @@ test-queue-consumer:
 # Default properties file paths
 CONSUMER_PROPS ?= kafka-queues-consumer/src/main/resources/default-consumer.properties
 
+# Default consumer arguments
+CONSUMER_ARGS ?= --consumers 10
+
 # Run the producer application with optional arguments
 # Usage: make run-kafka-producer [PRODUCER_PROPS=/path/to/properties] [ARGS="--duration 120 --interval 1000"]
 run-kafka-producer:
-	$(MVN) compile exec:java -pl kafka-producer -Dexec.mainClass="io.confluent.devrel.producer.ProducerApp" -Dexec.args="$(if $(PRODUCER_PROPS),--properties $(PRODUCER_PROPS)) $(ARGS)"
+	$(MVN) compile exec:java -pl kafka-producer -Dexec.mainClass="io.confluent.devrel.producer.ProducerApp" -Dexec.args="$(if $(PRODUCER_PROPS),--properties $(PRODUCER_PROPS)) $(ARGS)" > producer.log 2>&1 &
+	@echo "Producer started in background. Logs are being written to producer.log"
+	@echo "To view logs: tail -f producer.log"
+	@echo "To stop the producer: pkill -f ProducerApp"
 
 help-kafka-producer:
 	$(MVN) exec:java -pl kafka-producer -Dexec.args="--help"
@@ -54,10 +60,21 @@ help-kafka-producer:
 help-queue-consumer:
 	$(MVN) exec:java -pl kafka-queues-consumer -Dexec.args="--help"
 
+# Tail the producer log file
+tail-producer-logs:
+	tail -f producer.log
+
+# Tail the consumer log file
+tail-consumer-logs:
+	tail -f consumer.log
+
 # Run the consumer application with optional arguments
 # Usage: make run-queue-consumer [CONSUMER_PROPS=/path/to/properties] [ARGS="--consumers 10"]
 run-queue-consumer:
-	$(MVN) compile exec:java -pl kafka-queues-consumer -Dexec.mainClass="io.confluent.devrel.consumer.ConsumerApp" -Dexec.args="$(if $(CONSUMER_PROPS),--properties $(CONSUMER_PROPS)) $(ARGS)"
+	$(MVN) compile exec:java -pl kafka-queues-consumer -Dexec.mainClass="io.confluent.devrel.consumer.ConsumerApp" -Dexec.args="$(if $(CONSUMER_PROPS),--properties $(CONSUMER_PROPS)) $(if $(ARGS),$(ARGS),$(CONSUMER_ARGS))" > consumer.log 2>&1 &
+	@echo "Consumer started in background. Logs are being written to consumer.log"
+	@echo "To view logs: tail -f consumer.log"
+	@echo "To stop the consumer: pkill -f ConsumerApp"
 
 # Clean the project
 clean:
@@ -110,9 +127,11 @@ help:
 	@echo "${BOLD}- Run Targets${RESET}"
 	@echo ""
 	@echo "	ℹ️ help-kafka-producer  - Show help for kafka producer application"
-	@echo "	🚀 run-kafka-producer   - Run the kafka producer application"
+	@echo "	🚀 run-kafka-producer   - Run the kafka producer application (in background)"
+	@echo "	📋 tail-producer-logs  - Tail the producer log file"
 	@echo "	ℹ️ help-queue-consumer  - Show help for queue consumer application"
-	@echo "	🚀 run-queue-consumer   - Run the queue consumer application"
+	@echo "	🚀 run-queue-consumer   - Run the queue consumer application (in background, default 10 consumers)"
+	@echo "	📋 tail-consumer-logs  - Tail the consumer log file"
 	@echo ""
 	@echo "	** Example usage with arguments:"
 	@echo "		make run-kafka-producer [PRODUCER_PROPS=/path/to/properties] [ARGS=\"--duration 120 --interval 1000\"]"
@@ -123,4 +142,4 @@ help:
 	@echo "		Consumer: kafka-queues-consumer/src/main/resources/default-consumer.properties"
 	@echo "${YELLOW}=======================================================================================${RESET}"
 
-.PHONY: all build test test-kafka-producer test-queue-consumer run-kafka-producer run-queue-consumer clean docker-start docker-stop docker-remove docker-clean docker-logs docker-logs-kafka docker-logs-topics help
+.PHONY: all build test test-kafka-producer test-queue-consumer run-kafka-producer run-queue-consumer tail-producer-logs tail-consumer-logs clean docker-start docker-stop docker-remove docker-clean docker-logs docker-logs-kafka docker-logs-topics help

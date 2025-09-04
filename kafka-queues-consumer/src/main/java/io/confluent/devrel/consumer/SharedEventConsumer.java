@@ -50,7 +50,7 @@ public class SharedEventConsumer<Key, Value> implements Runnable, AutoCloseable 
                         // underlying issue was worthy of the retry logic of the share consumer.
                         consumer.acknowledge(record, AcknowledgeType.REJECT);
                     }
-                    consumer.commitSync(); // the most EXPLICIT use of EXPLICIT!!!
+//                    consumer.commitSync(); // OPTIONALLY: the most EXPLICIT use of EXPLICIT!!!
                 });
             }
         } catch (WakeupException e) {

@@ -80,11 +80,14 @@ To view logs from a specific service:
 
 [source,bash]
 ----
+# View all Docker logs
+make docker-logs
+
 # View Kafka logs
-docker compose logs kafka
+make docker-logs-kafka
 
 # View topic creation logs
-docker compose logs kafka-topics
+make docker-logs-topics
 ----
 
 === Stopping and Cleaning Up
@@ -121,7 +124,7 @@ To view help for the producer application:
 make help-kafka-producer
 ----
 
-To run the producer with default configuration:
+To run the producer with default configuration (runs in background):
 
 [source,bash]
 ----
@@ -142,10 +145,26 @@ To run the producer with custom arguments:
 make run-kafka-producer ARGS="--duration 120 --interval 1000"
 ----
 
+To view producer logs in real-time:
+
+[source,bash]
+----
+make tail-producer-logs
+----
+
+To stop the producer:
+
+[source,bash]
+----
+pkill -f ProducerApp
+----
+
 Available arguments:
 * `--properties`: Path to Kafka client properties file (optional, defaults to classpath resource)
 * `--duration`: Duration in seconds for the producer to run (default: 60)
 * `--interval`: Interval in milliseconds between producing events (default: 500)
+
+**Note**: The producer runs in the background and logs are written to `producer.log`. Use `make tail-producer-logs` to follow the logs in real-time.
 
 === Queue Consumer Application
 
@@ -156,7 +175,7 @@ To view help for the consumer application:
 make help-queue-consumer
 ----
 
-To run the queue consumer with default configuration:
+To run the queue consumer with default configuration (runs in background with 10 consumers):
 
 [source,bash]
 ----
@@ -177,9 +196,57 @@ To run the consumer with custom arguments:
 make run-queue-consumer ARGS="--consumers 5"
 ----
 
+To view consumer logs in real-time:
+
+[source,bash]
+----
+make tail-consumer-logs
+----
+
+To stop the consumer:
+
+[source,bash]
+----
+pkill -f ConsumerApp
+----
+
 Available arguments:
 * `--properties`: Path to Kafka client properties file (optional, defaults to classpath resource)
-* `--consumers`: Number of consumer instances to run (default: 5)
+* `--consumers`: Number of consumer instances to run (default: 10)
+
+**Note**: The consumer runs in the background and logs are written to `consumer.log`. Use `make tail-consumer-logs` to follow the logs in real-time.
+
+=== Log Files
+
+Both applications run in the background and write their output to log files:
+
+* `producer.log`: Contains all output from the producer application
+* `consumer.log`: Contains all output from the consumer application
+
+These log files are automatically created when you run the applications and are ignored by git. You can:
+
+* View logs in real-time: `make tail-producer-logs` or `make tail-consumer-logs`
+* View the entire log file: `cat producer.log` or `cat consumer.log`
+* Clear logs: `rm producer.log consumer.log`
+
+=== Running Both Applications
+
+You can run both the producer and consumer simultaneously:
+
+[source,bash]
+----
+# Start both applications in background
+make run-kafka-producer
+make run-queue-consumer
+
+# View logs from both applications (in separate terminals)
+make tail-producer-logs
+make tail-consumer-logs
+
+# Stop both applications
+pkill -f ProducerApp
+pkill -f ConsumerApp
+----
 
 == Getting Help
 
